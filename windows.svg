@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="Мытьё окна: чистая полоса после сгона">
+<title>Мытьё окна: чистая полоса после сгона</title>
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#DCE6E1"/><stop offset="1" stop-color="#F4F2EB"/></linearGradient>
+  <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF7DF" stop-opacity=".75"/><stop offset="1" stop-color="#FFF7DF" stop-opacity="0"/></linearGradient>
+  <linearGradient id="wallLight" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9DA49F"/><stop offset=".5" stop-color="#E4E7E4"/><stop offset="1" stop-color="#A7AEA9"/></linearGradient>
+  <pattern id="dust" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="4" cy="6" r="1.6" fill="#8C8578" opacity=".5"/><circle cx="17" cy="3" r="1" fill="#8C8578" opacity=".45"/><circle cx="12" cy="17" r="2" fill="#9A927F" opacity=".35"/><circle cx="22" cy="21" r="1.2" fill="#8C8578" opacity=".5"/><circle cx="6" cy="23" r=".9" fill="#8C8578" opacity=".4"/></pattern>
+  <pattern id="haze" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="#C9C2B2" opacity=".28"/><circle cx="8" cy="10" r="3" fill="#A9A08C" opacity=".25"/><circle cx="28" cy="26" r="4" fill="#A9A08C" opacity=".2"/><path d="M0 34 Q 12 30 22 36 T 40 33" stroke="#A9A08C" stroke-width="1.5" fill="none" opacity=".25"/></pattern>
+</defs>
+
+<rect width="1200" height="900" fill="#ECE6DB"/>
+<rect x="150" y="60" width="900" height="700" fill="#FAF8F4"/>
+<rect x="180" y="90" width="410" height="640" fill="url(#sky)"/><rect x="610" y="90" width="410" height="640" fill="url(#sky)"/>
+<g opacity=".9">
+<path d="M180 560 Q 300 500 420 540 T 590 520 V730 H180Z" fill="#C5D2C3"/><path d="M610 520 Q 760 480 880 520 T 1020 500 V730 H610Z" fill="#C5D2C3"/>
+<path d="M180 620 Q 340 570 480 620 T 590 600 V730 H180Z" fill="#A9BBA8"/><path d="M610 600 Q 720 560 860 610 T 1020 590 V730 H610Z" fill="#A9BBA8"/>
+<circle cx="840" cy="440" r="70" fill="#3B8068" opacity=".55"/><rect x="836" y="500" width="8" height="120" fill="#1E5A47" opacity=".6"/>
+<circle cx="300" cy="460" r="56" fill="#3B8068" opacity=".5"/>
+</g>
+<!-- загрязнение правой створки, чистая полоса -->
+<clipPath id="pane"><rect x="610" y="90" width="410" height="640"/></clipPath>
+<g clip-path="url(#pane)">
+  <path d="M610 90 H1020 V730 H610Z M610 330 L1020 160 L1020 300 L610 470Z" fill="url(#haze)" fill-rule="evenodd"/>
+</g>
+<path d="M210 120 L330 120 L240 380 L210 380Z" fill="#fff" opacity=".45"/>
+<path d="M640 360 L760 310 L700 450 L640 470Z" fill="#fff" opacity=".35"/>
+<!-- импост -->
+<rect x="590" y="90" width="20" height="640" fill="#FAF8F4"/>
+<rect x="590" y="400" width="20" height="40" rx="4" fill="#B9BFBA"/>
+<!-- сгон -->
+<g transform="rotate(-22 905 255)">
+  <rect x="790" y="232" width="230" height="22" rx="4" fill="#1B2421"/><rect x="796" y="252" width="218" height="8" rx="2" fill="#3A433F"/>
+  <rect x="890" y="160" width="26" height="74" rx="6" fill="#1E5A47"/><rect x="884" y="100" width="38" height="70" rx="14" fill="#2A6D57"/>
+</g>
+<path d="M700 454.6 Q 707 467.2 700 477 Q 693 467.2 700 454.6Z" fill="#fff" opacity=".7"/><path d="M760 509 Q 765 518 760 525 Q 755 518 760 509Z" fill="#fff" opacity=".7"/><path d="M690 546.8 Q 696 557.6 690 566 Q 684 557.6 690 546.8Z" fill="#fff" opacity=".7"/><path d="M1000 346.8 Q 1006 357.6 1000 366 Q 994 357.6 1000 346.8Z" fill="#fff" opacity=".7"/><path d="M960 411.2 Q 964 418.4 960 424 Q 956 418.4 960 411.2Z" fill="#fff" opacity=".7"/><path d="M880 489 Q 885 498 880 505 Q 875 498 880 489Z" fill="#fff" opacity=".7"/>
+<!-- подоконник -->
+<rect x="110" y="760" width="980" height="28" fill="#FAF8F4"/><rect x="110" y="788" width="980" height="10" fill="#E2DCD0"/>
+<g transform="translate(260 618) scale(1.05)">
+    <path d="M-22 0 H22 L26 120 Q26 132 14 132 H-14 Q-26 132 -26 120Z" fill="#E7D36B"/>
+    <rect x="-12" y="-22" width="24" height="24" rx="3" fill="#1B2421"/>
+    <path d="M-10 -22 L-10 -40 H30 L38 -32 L30 -26 H6 L6 -22Z" fill="#1B2421"/>
+    <path d="M10 -22 Q 18 -6 6 4" stroke="#1B2421" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <rect x="-16" y="44" width="32" height="40" rx="3" fill="#fff" opacity=".85"/><rect x="-10" y="54" width="20" height="3" fill="#1B2421" opacity=".35"/><rect x="-10" y="62" width="14" height="3" fill="#1B2421" opacity=".25"/>
+    <rect x="-18" y="8" width="5" height="100" rx="2.5" fill="#fff" opacity=".25"/>
+  </g>
+<path d="M340 760 q20 -40 70 -36 q50 4 80 36z" fill="#C5D2C3"/><path d="M360 760 q30 -24 80 -20" stroke="#A9BBA8" stroke-width="4" fill="none"/>
+<path d="M470 204C471.92 218.08 471.92 218.08 486 220C471.92 221.92 471.92 221.92 470 236C468.08 221.92 468.08 221.92 454 220C468.08 218.08 468.08 218.08 470 204Z" fill="#fff" opacity="0.95"/><path d="M1000 169C1001.32 178.68 1001.32 178.68 1011 180C1001.32 181.32 1001.32 181.32 1000 191C998.68 181.32 998.68 181.32 989 180C998.68 178.68 998.68 178.68 1000 169Z" fill="#fff" opacity="0.9"/><path d="M380 671C381.08 678.92 381.08 678.92 389 680C381.08 681.08 381.08 681.08 380 689C378.92 681.08 378.92 681.08 371 680C378.92 678.92 378.92 678.92 380 671Z" fill="#fff" opacity="0.8"/>
+
+</svg>

@@ -34,7 +34,7 @@ module.exports = {
       "Промышленный район",
       "Пригородные посёлки — по согласованию"
     ],
-    telegram: "",
+    tg_username: "",
     whatsapp: "",
     vk: "",
     inn: "",
@@ -51,7 +51,7 @@ module.exports = {
   },
   blocks: {
     show_featured: 1,
-    show_advantages: 1,
+    show_advantages: 0,
     show_process: 1,
     show_reviews: 1,
     show_faq: 1,

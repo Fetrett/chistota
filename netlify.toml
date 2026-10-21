@@ -1,0 +1,14 @@
+# Настройки Netlify. Менять не нужно.
+[build]
+  publish = "public"
+  command = "echo 'Сборка не требуется'"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["content.js"]
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+    X-Content-Type-Options = "nosniff"

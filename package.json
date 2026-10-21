@@ -1,0 +1,15 @@
+{
+  "name": "eksperty-chistoty",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Сайт клининговой компании с админкой и заявками в Telegram. Хостинг: Netlify (бесплатный тариф).",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node dev.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "@netlify/functions": "^3.0.0"
+  }
+}

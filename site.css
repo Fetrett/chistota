@@ -576,3 +576,5 @@ textarea.input { min-height: 112px; resize: vertical; line-height: 1.5; }
   .scard { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 24px; align-items: start; }
   .scard__body { padding-top: 0; }
 }
+.form-done .btn[disabled] { opacity: .45; cursor: not-allowed; }
+.form-done__soon { margin: 0; font-size: 14px; color: var(--muted); }

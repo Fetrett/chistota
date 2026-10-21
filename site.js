@@ -238,16 +238,23 @@
     function selectText(el) { var r = document.createRange(); r.selectNodeContents(el); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
 
     function done(res) {
-      // Подтверждение показываем только после ответа сервера о сохранении заявки
+      // Подтверждение показываем только после ответа сервера о сохранении заявки.
+      // Пока владелец не указал Telegram, кнопка «Написать в Telegram» — заглушка.
+      var text = buildMessage();
       var box = document.createElement('div');
       box.className = 'form-done'; box.setAttribute('role', 'status'); box.tabIndex = -1;
       var h = document.createElement('h3'); h.className = 'h3';
       h.textContent = res.id ? 'Заявка №' + res.id + ' принята' : 'Заявка принята';
       var p = document.createElement('p');
-      p.textContent = form.elements.kind.value === 'callback'
-        ? 'Спасибо! Перезвоним в рабочее время.'
-        : 'Спасибо! Перезвоним, уточним детали и подтвердим стоимость' + (res.estimate ? ' (ориентир — ' + rub(res.estimate) + ')' : '') + '.';
-      box.appendChild(h); box.appendChild(p);
+      p.textContent = 'Спасибо! Перезвоним в рабочее время, уточним детали и подтвердим стоимость. Ваше сообщение:';
+      var msg = document.createElement('pre'); msg.className = 'form-done__msg'; msg.textContent = text;
+      var act = document.createElement('div'); act.className = 'form-done__act';
+      var tgBtn = document.createElement('button'); tgBtn.type = 'button'; tgBtn.className = 'btn btn--tg'; tgBtn.disabled = true;
+      tgBtn.setAttribute('aria-describedby', 'tg-soon'); tgBtn.textContent = 'Написать в Telegram';
+      act.appendChild(tgBtn);
+      var note = document.createElement('p'); note.className = 'form-done__soon'; note.id = 'tg-soon';
+      note.textContent = 'Скоро здесь можно будет сразу написать нам в Telegram.';
+      box.appendChild(h); box.appendChild(p); box.appendChild(msg); box.appendChild(act); box.appendChild(note);
       form.replaceWith(box);
       box.focus({ preventScroll: true });
       box.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });

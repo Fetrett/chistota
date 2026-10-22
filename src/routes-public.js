@@ -52,7 +52,7 @@ function register(r) {
   r.post('/zayavka', async (req, res) => {
     await store.loadLeads();
     try {
-      const out = await Leads.create(req.body, req.ip, siteUrl(req));
+      const out = await Leads.create(req.body, req.ip);
       if (req.wantsJson) return res.json({ ok: true, id: out.id || null, estimate: out.estimate || null });
       return res.redirect(`/spasibo?n=${out.id || ''}&k=${req.body.kind === 'callback' ? 'callback' : 'order'}`);
     } catch (e) {

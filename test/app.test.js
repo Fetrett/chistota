@@ -8,22 +8,12 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const http = require('http');
 
 process.env.LOCAL_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'ec-nf-'));
 process.env.ADMIN_PASSWORD = 'Test-password-1';
-process.env.TELEGRAM_BOT_TOKEN = '1:T';
-process.env.TELEGRAM_CHAT_ID = '42';
 const app = require('../src/app');
 
-const sent = [];
-let tg;
-before(async () => {
-  tg = http.createServer((req, res) => { let b = ''; req.on('data', (c) => { b += c; }); req.on('end', () => { sent.push({ url: req.url, body: JSON.parse(b) }); res.end('{"ok":true}'); }); });
-  await new Promise((r) => tg.listen(0, '127.0.0.1', r));
-  process.env.TELEGRAM_API_BASE = `http://127.0.0.1:${tg.address().port}`;
-});
-after(() => { tg.close(); fs.rmSync(process.env.LOCAL_DATA_DIR, { recursive: true, force: true }); });
+after(() => { fs.rmSync(process.env.LOCAL_DATA_DIR, { recursive: true, force: true }); });
 
 const H = 'example.test';
 const call = (p, o = {}) => app.handle(new Request(`https://${H}${p}`, { redirect: 'manual', ...o, headers: { host: H, ...(o.headers || {}) } }), { ip: o.ip || '10.0.0.1' });
@@ -41,14 +31,10 @@ test('публичные страницы', async () => {
   assert.match(r.headers.get('netlify-cdn-cache-control'), /s-maxage/);
 });
 
-test('заявка: сохраняется, сумма считается на сервере, уходит в Telegram', async () => {
+test('заявка: сохраняется, сумма считается на сервере', async () => {
   const r = await call('/zayavka', { method: 'POST', headers: { ...FORM, Accept: 'application/json' }, body: form({ kind: 'order', ts: old(), name: 'Мария', phone: '8 912 000-11-22', service_id: '2', qty: '40', addons: '101', consent: '1' }) });
   const j = await r.json();
   assert.equal(j.ok, true); assert.equal(j.estimate, 170 * 40 + 700);
-  const m = sent.at(-1);
-  assert.equal(m.url, '/bot1:T/sendMessage'); assert.equal(m.body.chat_id, '42');
-  assert.match(m.body.text, /Мария/); assert.match(m.body.text, /\+7 \(912\) 000-11-22/); assert.match(m.body.text, /Генеральная уборка — 40 м²/); assert.match(m.body.text, /Духовка внутри/);
-  assert.match(m.body.text, /https:\/\/example\.test\/admin\/leads\/\d+/);
 });
 
 test('заявка без JS: редирект на «Спасибо»', async () => {
@@ -60,9 +46,8 @@ test('ошибки заявки и антиспам', async () => {
   const J = { ...FORM, Accept: 'application/json' };
   let r = await call('/zayavka', { method: 'POST', headers: J, body: form({ kind: 'order', ts: old(), name: '', phone: '1' }), ip: '10.0.0.3' });
   assert.equal(r.status, 422); const j = await r.json(); assert.ok(j.errors.name && j.errors.phone && j.errors.consent);
-  const n = sent.length;
   r = await call('/zayavka', { method: 'POST', headers: J, body: form({ kind: 'callback', ts: old(), name: 'Бот', phone: '89001112233', consent: '1', website: 'spam' }), ip: '10.0.0.4' });
-  assert.equal((await r.json()).id, null); assert.equal(sent.length, n, 'ловушка: в Telegram ничего не ушло');
+  assert.equal((await r.json()).id, null, 'ловушка: ничего не сохранено');
   r = await call('/zayavka', { method: 'POST', headers: J, body: form({ kind: 'callback', ts: String(Date.now()), name: 'Быстрый', phone: '89001112233', consent: '1' }), ip: '10.0.0.5' });
   assert.equal(r.status, 429);
   for (let i = 0; i < 5; i++) await call('/zayavka', { method: 'POST', headers: J, body: form({ kind: 'callback', ts: old(), name: 'Флуд', phone: '89001112233', consent: '1' }), ip: '10.0.0.6' });
@@ -133,4 +118,38 @@ test('без ADMIN_PASSWORD вход невозможен и есть подск
   assert.match(h, /ADMIN_PASSWORD/);
   assert.equal((await call('/admin/login', { method: 'POST', headers: FORM, body: form({ password: '' }) })).status, 401);
   process.env.ADMIN_PASSWORD = saved;
+});
+
+test('Telegram владельца: кнопка появляется, телефон клиента необязателен', async () => {
+  const { cookie, csrf } = await login();
+  let h = await (await call('/raschet')).text();
+  assert.ok(!h.includes('data-tg='), 'без логина — обычная заявка');
+  const r = await call('/admin/contacts', { method: 'POST', headers: { cookie, ...FORM }, body: form({ _csrf: csrf, name: 'Эксперты чистоты', city: 'Зеркальный', phone: '+7 912 111-22-33', tg_username: 'https://t.me/Owner_Name', hours: 'x', areas: 'y' }) });
+  assert.equal(r.status, 303);
+  h = await (await call('/raschet')).text();
+  assert.match(h, /data-tg="https:\/\/t\.me\/Owner_Name"/); assert.match(h, /Отправить заявку/);
+  assert.match(await (await call('/kontakty')).text(), /data-tg="https:\/\/t\.me\/Owner_Name"/);
+  const bad = await call('/admin/contacts', { method: 'POST', headers: { cookie, ...FORM }, body: form({ _csrf: csrf, name: 'Э', city: 'З', phone: '+7 912 111-22-33', tg_username: 'a b' }) });
+  assert.equal(bad.status, 422);
+  const j = await (await call('/zayavka', { method: 'POST', headers: { ...FORM, Accept: 'application/json' }, body: form({ kind: 'order', channel: 'telegram', ts: old(), name: 'Олег', phone: '', service_id: '2', qty: '50', consent: '1' }), ip: '10.9.0.1' })).json();
+  assert.equal(j.ok, true, 'копия Telegram-заявки без телефона сохраняется');
+  const list = await (await call('/admin/leads', { headers: { cookie } })).text();
+  assert.match(list, /Олег/); assert.match(list, /через Telegram/);
+});
+
+test('очистка всех заявок и смена названия по всему сайту', async () => {
+  const { cookie, csrf } = await login();
+  await call('/zayavka', { method: 'POST', headers: { ...FORM, Accept: 'application/json' }, body: form({ kind: 'callback', ts: old(), name: 'Тест', phone: '89001112233', consent: '1' }), ip: '10.7.0.1' });
+  let r = await call('/admin/leads/clear', { method: 'POST', headers: { cookie, ...FORM }, body: form({ _csrf: csrf }) });
+  assert.equal(r.status, 303);
+  assert.match(await (await call('/admin/leads', { headers: { cookie } })).text(), /Заявок пока нет/);
+  const j = await (await call('/zayavka', { method: 'POST', headers: { ...FORM, Accept: 'application/json' }, body: form({ kind: 'callback', ts: old(), name: 'Новый', phone: '89001112233', consent: '1' }), ip: '10.7.0.2' })).json();
+  assert.equal(j.id, 1, 'нумерация с №1');
+  const before = await (await call('/admin/contacts', { headers: { cookie } })).text();
+  const cur = (n) => (new RegExp(`id="f-${n}"[^>]*value="([^"]*)"`).exec(before) || [])[1] || '';
+  r = await call('/admin/contacts', { method: 'POST', headers: { cookie, ...FORM }, body: form({ _csrf: csrf, name: 'Чистый дом', city: 'Берёзовский', city_in: 'Берёзовском', phone: '+7 912 111-22-33', address: cur('address'), hours: 'x', areas: 'y' }) });
+  assert.equal(r.status, 303);
+  const h = await (await call('/')).text();
+  assert.ok(!/Эксперты чистоты|Зеркальн/.test(h), 'старое название и город не остались');
+  assert.match(h, /Чистый дом/); assert.match(h, /Берёзовском/);
 });

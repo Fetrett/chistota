@@ -130,7 +130,8 @@
       var f = form.elements;
       if (!f.name.value.trim() || f.name.value.trim().length < 2) errs.name = 'Укажите имя — как к вам обращаться';
       var d = f.phone.value.replace(/\D/g, '');
-      if (!(d.length === 10 || (d.length >= 11 && d.length <= 15))) errs.phone = 'Проверьте номер телефона: нужно 10–11 цифр';
+      var phoneOptional = !!form.dataset.tg && !d.length;
+      if (!phoneOptional && !(d.length === 10 || (d.length >= 11 && d.length <= 15))) errs.phone = 'Проверьте номер телефона: нужно 10–11 цифр';
       if (f.email && f.email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.value)) errs.email = 'Проверьте адрес почты или оставьте поле пустым';
       if (f.kind.value === 'order') {
         if (!$('input[name="service_id"]:checked', form)) errs.service_id = 'Выберите услугу';
@@ -167,20 +168,104 @@
         .then(function () { btn.disabled = false; btn.classList.remove('is-loading'); if (label) label.textContent = labelText; });
     });
 
+    // ---------- «Написать в Telegram»: открываем чат владельца с готовым текстом ----------
+    function val(n) { var el = form.elements[n]; return el && el.value ? String(el.value).trim() : ''; }
+    function buildMessage() {
+      var L = [];
+      if (val('kind') === 'callback') {
+        L.push('Здравствуйте! Хочу проконсультироваться по уборке.');
+        if (val('comment')) L.push('', val('comment'));
+      } else {
+        L.push('Здравствуйте! Хочу заказать уборку.', '');
+        var r = $('input[name="service_id"]:checked', form);
+        if (r) {
+          var s = { price: +r.dataset.price, per_area: +r.dataset.area, min_price: +r.dataset.min };
+          var lim = window.Pricing.limits(s); var q = Math.max(1, parseInt(val('qty'), 10) || 1);
+          var ad = $$('input[name="addons"]:checked', form).map(function (c) { return { id: +c.value, name: c.dataset.name, price: +c.dataset.price }; });
+          var est = window.Pricing.estimate(s, q, ad);
+          L.push('Услуга: ' + r.dataset.name + ' — ' + q + ' ' + lim.unit);
+          if (ad.length) L.push('Дополнительно: ' + ad.map(function (a) { return a.name; }).join(', '));
+          L.push('Стоимость по калькулятору на сайте: ≈ ' + rub(est.total).replace(/\u00A0/g, ' '));
+        }
+        if (val('preferred_date')) L.push('Желаемая дата: ' + val('preferred_date').split('-').reverse().join('.'));
+        if (val('address')) L.push('Адрес: ' + val('address'));
+        if (val('comment')) L.push('Комментарий: ' + val('comment'));
+      }
+      L.push('');
+      L.push('Имя: ' + val('name'));
+      if (val('phone')) L.push('Телефон: ' + val('phone'));
+      if (val('contact_time')) L.push('Удобно связаться: ' + val('contact_time'));
+      return L.join('\n');
+    }
+    function selectText(el) { var r = document.createRange(); r.selectNodeContents(el); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+    function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+    // Заявка сохранена на сервере → на месте формы короткое подтверждение + окно с сообщением для Telegram
     function done(res) {
-      // Подтверждение показываем только после ответа сервера о сохранении заявки
-      var box = document.createElement('div');
-      box.className = 'form-done'; box.setAttribute('role', 'status'); box.tabIndex = -1;
-      var h = document.createElement('h3'); h.className = 'h3';
-      h.textContent = res.id ? 'Заявка №' + res.id + ' принята' : 'Заявка принята';
-      var p = document.createElement('p');
-      p.textContent = form.elements.kind.value === 'callback'
-        ? 'Спасибо! Перезвоним в рабочее время.'
-        : 'Спасибо! Перезвоним, уточним детали и подтвердим стоимость' + (res.estimate ? ' (ориентир — ' + rub(res.estimate) + ')' : '') + '.';
-      box.appendChild(h); box.appendChild(p);
+      var text = (res.id ? 'Заявка №' + res.id + ' с сайта\n' : '') + buildMessage();
+      var tg = form.dataset.tg || '';
+      var box = el('div', 'form-done'); box.setAttribute('role', 'status'); box.tabIndex = -1;
+      box.appendChild(el('h3', 'h3', res.id ? 'Заявка №' + res.id + ' принята' : 'Заявка принята'));
+      box.appendChild(el('p', '', 'Спасибо! Перезвоним в рабочее время, уточним детали и подтвердим стоимость.'));
+      var again = el('button', 'btn btn--ghost', 'Показать сообщение для Telegram'); again.type = 'button';
+      var act0 = el('div', 'form-done__act'); act0.appendChild(again); box.appendChild(act0);
       form.replaceWith(box);
-      box.focus({ preventScroll: true });
-      box.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+      var dlg = buildDialog(res, text, tg);
+      again.addEventListener('click', function () { dlg.open(again); });
+      dlg.open(box);
+    }
+
+    function buildDialog(res, text, tg) {
+      var wrap = el('div', 'ldlg'); wrap.hidden = true;
+      var boxEl = el('div', 'ldlg__box'); boxEl.setAttribute('role', 'dialog'); boxEl.setAttribute('aria-modal', 'true');
+      var tid = 'ldlg-t-' + (res.id || Date.now()); boxEl.setAttribute('aria-labelledby', tid);
+      var x = el('button', 'ldlg__x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Закрыть');
+      var h = el('h3', 'h3', 'Отправьте заявку нам в Telegram'); h.id = tid;
+      var p = el('p', 'ldlg__lead', res.id
+        ? 'Заявка №' + res.id + ' уже у нас. Чтобы получить ответ быстрее, отправьте её в Telegram — текст уже готов.'
+        : 'Текст заявки уже готов — отправьте его нам в Telegram.');
+      var msg = el('pre', 'form-done__msg', text);
+      var act = el('div', 'form-done__act');
+      var send;
+      if (tg) {
+        send = el('a', 'btn btn--tg', 'Отправить в Telegram');
+        send.href = tg + '?text=' + encodeURIComponent(text); send.target = '_blank'; send.rel = 'noopener';
+      } else {
+        send = el('button', 'btn btn--tg', 'Отправить в Telegram'); send.type = 'button';
+      }
+      var copy = el('button', 'btn btn--ghost', 'Скопировать текст'); copy.type = 'button';
+      var note = el('p', 'ldlg__note'); note.setAttribute('aria-live', 'polite');
+      act.appendChild(send); act.appendChild(copy);
+      boxEl.appendChild(x); boxEl.appendChild(h); boxEl.appendChild(p); boxEl.appendChild(msg); boxEl.appendChild(act); boxEl.appendChild(note);
+      wrap.appendChild(boxEl); document.body.appendChild(wrap);
+
+      if (!tg) send.addEventListener('click', function () {
+        // Заглушка: Telegram владельца ещё не указан в админке
+        note.textContent = 'Здесь откроется чат с нами в Telegram, и это сообщение уже будет вписано. Кнопка заработает, как только мы подключим Telegram.';
+      });
+      copy.addEventListener('click', function () {
+        var ok = function () { copy.textContent = 'Скопировано'; };
+        if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, function () { selectText(msg); });
+        else selectText(msg);
+      });
+      var back = null;
+      function close() { wrap.hidden = true; document.body.classList.remove('dlg-open'); document.removeEventListener('keydown', onKey); if (back) back.focus({ preventScroll: true }); }
+      function onKey(e) {
+        if (e.key === 'Escape') close();
+        if (e.key === 'Tab') {
+          var f = $$('a, button', boxEl); var first = f[0], last = f[f.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      }
+      x.addEventListener('click', close);
+      wrap.addEventListener('click', function (e) { if (e.target === wrap) close(); });
+      return {
+        open: function (from) {
+          back = from || null; wrap.hidden = false; document.body.classList.add('dlg-open');
+          document.addEventListener('keydown', onKey); send.focus({ preventScroll: true });
+        },
+      };
     }
   }
 

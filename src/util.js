@@ -91,4 +91,12 @@ function limiter(max, windowMs) {
   };
 }
 
-module.exports = { raw, esc, html, part, Raw, fmt, rub, lines, paragraphs, dateRu, digits, normPhone, telHref, prettyPhone, slugify, parseCookies, cookie, sha256, token, safeEqual, limiter };
+/** Ссылка на личный чат в Telegram по логину (@name) или номеру телефона. Пусто, если не задано. */
+function tgBase(v) {
+  const s = String(v || '').trim().replace(/^https?:\/\/t\.me\//i, '').replace(/^@/, '');
+  if (/^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(s)) return 'https://t.me/' + s;
+  const p = normPhone(s);
+  return p ? 'https://t.me/' + p : '';
+}
+
+module.exports = { tgBase, raw, esc, html, part, Raw, fmt, rub, lines, paragraphs, dateRu, digits, normPhone, telHref, prettyPhone, slugify, parseCookies, cookie, sha256, token, safeEqual, limiter };

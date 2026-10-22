@@ -2,6 +2,6 @@
 // Статические файлы из public/ (CSS, JS, шрифты, картинки) Netlify отдаёт сам — preferStatic.
 import app from '../../src/app.js';
 
-export default async (request, context) => app.handle(request, { ip: context.ip });
+export default async (request, context) => app.handle(request, { ip: context.ip, deployId: context.deploy && context.deploy.id });
 
 export const config = { path: '/*', preferStatic: true };

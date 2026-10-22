@@ -7,7 +7,6 @@ const auth = require('./auth');
 const V = require('./validate');
 const media = require('./media');
 const store = require('./store');
-const telegram = require('./telegram');
 const { Services, Addons, Items, Leads, STATUSES, ITEM_KINDS, getGroup, setGroup } = require('./models');
 const views = require('./views/admin');
 const { cookie, normPhone } = require('./util');
@@ -72,18 +71,14 @@ function register(r) {
   r.get('/admin', requireAuth, (req, res) => {
     const company = getGroup('company'); const site = getGroup('site');
     const checks = [
-      { ok: telegram.configured(), text: 'Заявки отправляются в Telegram (TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID в Netlify)' },
+      { ok: !!company.tg_username, text: 'Указан Telegram для заявок — клиенты смогут написать вам в один клик', href: '/admin/contacts' },
       { ok: normPhone(company.phone) !== '+79000000000', text: 'Указан реальный номер телефона', href: '/admin/contacts' },
       { ok: company.email && !company.email.endsWith('@example.com'), text: 'Указан рабочий email', href: '/admin/contacts' },
       { ok: !!(company.legal_name && company.inn), text: 'Заполнены реквизиты (юрлицо, ИНН)', href: '/admin/contacts' },
       { ok: Services.list().some((s) => /^(\/media\/|https:)/.test(s.image)), text: 'Загружены реальные фото работ', href: '/admin/services' },
       { ok: !site.demo_notice, text: 'Выключена плашка демо-режима', href: '/admin/settings' },
     ];
-    res.html(views.dashboard(vctx(req, res), { counts: Leads.counts(), recent: Leads.recent(6), checks, tg: telegram.configured() }));
-  });
-  r.post('/admin/telegram-test', requireAuth, async (req, res) => {
-    const t = await telegram.sendTest(getGroup('company').name);
-    done(req, res, '/admin', t.ok ? 'Тестовое сообщение отправлено — проверьте Telegram' : 'Telegram не ответил: ' + (t.error || 'ошибка'), t.ok ? 'ok' : 'err');
+    res.html(views.dashboard(vctx(req, res), { counts: Leads.counts(), recent: Leads.recent(6), checks }));
   });
 
   // ---------- Заявки ----------
@@ -96,6 +91,10 @@ function register(r) {
     const l = Leads.get(idParam(req));
     if (!l) return res.html(views.notFound(vctx(req, res)), 404);
     res.html(views.lead(vctx(req, res), l));
+  });
+  r.post('/admin/leads/clear', requireAuth, (req, res) => {
+    const n = Leads.clear();
+    done(req, res, '/admin/leads', n ? `Удалено заявок: ${n}. Нумерация начнётся с №1` : 'Заявок и так нет');
   });
   r.post('/admin/leads/:id', requireAuth, (req, res) => {
     const l = Leads.get(idParam(req));
@@ -214,8 +213,21 @@ function register(r) {
   r.post('/admin/contacts', requireAuth, (req, res) => {
     const { data, errors } = V.company(req.body);
     if (Object.keys(errors).length) return res.html(views.contacts(vctx(req, res), { c: { ...getGroup('company'), ...req.body }, errors }), 422);
+    const old = getGroup('company');
     setGroup('company', data);
-    done(req, res, '/admin/contacts', 'Контакты сохранены и обновлены на всём сайте');
+    // Новое название или город — заменяем и в заголовках, SEO и текстах сайта
+    const swaps = [[old.name, data.name], [old.city_in, data.city_in], [old.city, data.city]].filter(([a, b]) => a && b && a !== b);
+    if (swaps.length) {
+      const fix = (v) => (typeof v === 'string' ? swaps.reduce((acc, [a, b]) => acc.split(a).join(b), v) : v);
+      const co = getGroup('company');
+      setGroup('company', { address: fix(co.address), areas: fix(co.areas) });
+      for (const g of ['site', 'content']) {
+        const cur = getGroup(g); const next = {};
+        for (const [k, v] of Object.entries(cur)) next[k] = fix(v);
+        setGroup(g, next);
+      }
+    }
+    done(req, res, '/admin/contacts', swaps.length ? 'Контакты сохранены, новое название и город подставлены во все тексты сайта' : 'Контакты сохранены и обновлены на всём сайте');
   });
 
   // ---------- Внешний вид и SEO ----------

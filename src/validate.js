@@ -3,7 +3,7 @@
  * Серверная валидация. Каждая функция возвращает { data, errors }.
  * errors — объект { поле: 'сообщение' }; пустой объект означает успех.
  */
-const { normPhone, slugify } = require('./util');
+const { normPhone, slugify, tgBase } = require('./util');
 
 const str = (v, max = 500) => String(v ?? '').replace(/\r\n/g, '\n').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim().slice(0, max);
 const bool = (v) => (v === '1' || v === 'on' || v === true || v === 1 ? 1 : 0);
@@ -35,8 +35,9 @@ function url(v) {
 function lead(b) {
   const e = {};
   const kind = b.kind === 'callback' ? 'callback' : 'order';
+  const channel = b.channel === 'telegram' ? 'telegram' : 'form';
   const d = {
-    kind,
+    kind, channel,
     name: str(b.name, 80),
     phone: normPhone(b.phone),
     email: str(b.email, 120).toLowerCase(),
@@ -49,7 +50,8 @@ function lead(b) {
     addon_ids: [].concat(b.addons || []).map((x) => int(x, { min: 1 })).filter((x) => !Number.isNaN(x)).slice(0, 30),
   };
   if (d.name.length < 2) e.name = 'Укажите имя — как к вам обращаться';
-  if (!d.phone) e.phone = 'Проверьте номер телефона: нужно 10–11 цифр';
+  if (!d.phone && (channel !== 'telegram' || str(b.phone))) e.phone = 'Проверьте номер телефона: нужно 10–11 цифр';
+  if (!d.phone) d.phone = '';
   if (d.email && !isEmail(d.email)) e.email = 'Проверьте адрес почты или оставьте поле пустым';
   if (d.preferred_date) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d.preferred_date) || Number.isNaN(Date.parse(d.preferred_date))) e.preferred_date = 'Некорректная дата';
@@ -126,7 +128,14 @@ function company(b) {
   if (d.email && !isEmail(d.email)) e.email = 'Некорректный email';
   if (d.inn && !/^(\d{10}|\d{12})$/.test(d.inn)) e.inn = 'ИНН — 10 или 12 цифр';
   if (d.ogrn && !/^(\d{13}|\d{15})$/.test(d.ogrn)) e.ogrn = 'ОГРН — 13 цифр, ОГРНИП — 15';
-  for (const k of ['telegram', 'whatsapp', 'vk']) {
+  d.tg_username = str(b.tg_username, 60).replace(/^https?:\/\/t\.me\//i, '');
+  if (d.tg_username) {
+    const base = tgBase(d.tg_username);
+    if (!base) e.tg_username = 'Укажите логин вида @username (5–32 латинских буквы, цифры или _) или номер телефона';
+    else d.tg_username = base.startsWith('https://t.me/+') ? base.slice(13) : '@' + base.slice(13);
+  }
+  d.telegram = '';
+  for (const k of ['whatsapp', 'vk']) {
     const u = url(b[k]);
     if (!u.ok) e[k] = 'Полная ссылка, начиная с https://';
     d[k] = u.value;

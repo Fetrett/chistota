@@ -1,6 +1,6 @@
 'use strict';
 /** Публичные страницы. Все данные приходят из базы через ctx — в шаблонах нет захардкоженных цен и контактов. */
-const { html, raw, rub, fmt, lines, paragraphs, telHref } = require('../util');
+const { html, raw, rub, fmt, lines, paragraphs, telHref, tgBase } = require('../util');
 const { icon } = require('../icons');
 const Pricing = require('../../public/static/js/pricing');
 const { page, phoneText, socials, absUrl } = require('./layout');
@@ -17,8 +17,26 @@ function crumbs(list) {
   return html`<nav aria-label="Хлебные крошки"><ol class="crumbs">${list.map(([href, label]) => html`<li>${href ? html`<a href="${href}">${label}</a>` : html`<span aria-current="page">${label}</span>`}</li>`)}</ol></nav>`;
 }
 
+function serviceCard(s) {
+  const inc = lines(s.includes).slice(0, 3);
+  return html`
+<article class="scard rv">
+  <a class="scard__media" href="/uslugi/${s.slug}" tabindex="-1" aria-hidden="true">${img(s.image, '', { w: 1200, h: 900 })}</a>
+  <div class="scard__body">
+    <h3 class="scard__t"><a href="/uslugi/${s.slug}">${s.name}</a></h3>
+    <p class="scard__sum">${s.summary}</p>
+    ${inc.length ? html`<ul class="checks checks--sm">${inc.map((x) => html`<li>${icon('check', { size: 16 })}<span>${x}</span></li>`)}</ul>` : ''}
+    <div class="scard__price"><span class="price price--sm">${priceFrom(s)}<small>${unitOf(s)}</small></span>${s.duration ? html`<span class="meta">${icon('clock', { size: 15 })}${s.duration}</span>` : ''}</div>
+    <div class="scard__act">
+      <a class="btn btn--sm" href="/raschet?usluga=${s.slug}">Рассчитать</a>
+      <a class="link" href="/uslugi/${s.slug}">Подробнее ${icon('arrow', { size: 15 })}</a>
+    </div>
+  </div>
+</article>`;
+}
+
 function serviceRow(s, i) {
-  const inc = lines(s.includes).slice(0, 4);
+  const inc = lines(s.includes).slice(0, 3);
   return html`
 <article class="srow rv" id="s-${s.slug}">
   <a class="srow__media" href="/uslugi/${s.slug}" tabindex="-1" aria-hidden="true">${img(s.image, '')}</a>
@@ -78,14 +96,20 @@ function faqBlock(ctx, items, { title, aside = true } = {}) {
 </section>`;
 }
 
-function finalCta(ctx) {
+function finalCta(ctx, { areas = false } = {}) {
   const c = ctx.content;
+  const areaList = areas ? lines(ctx.company.areas) : [];
   return html`
 <section class="sec--tight" aria-labelledby="final-t">
   <div class="wrap"><div class="final rv">
-    <div><h2 class="h2" id="final-t">${c.final_title}</h2>${c.final_text ? html`<p>${c.final_text}</p>` : ''}</div>
+    <div><h2 class="h2" id="final-t">${c.final_title}</h2>${c.final_text ? html`<p>${c.final_text}</p>` : ''}
+      ${areas ? html`<dl class="final__meta">
+        <div><dt>Часы работы</dt><dd class="pre">${ctx.company.hours}</dd></div>
+        ${areaList.length ? html`<div><dt>Где работаем</dt><dd><ul class="areas">${areaList.map((x) => html`<li>${x}</li>`)}</ul></dd></div>` : ''}
+      </dl>` : ''}</div>
     <div class="final__act">
       <a class="btn" href="${telHref(ctx.company.phone)}">${icon('phone', { size: 18 })} ${phoneText(ctx.company.phone)}</a>
+      ${tgBase(ctx.company.tg_username) ? html`<a class="btn btn--ghost" href="${tgBase(ctx.company.tg_username)}" target="_blank" rel="noopener">${icon('send', { size: 18 })} Telegram</a>` : ''}
       <a class="btn btn--ghost" href="/raschet">${c.hero_cta}</a>
     </div>
   </div></div>
@@ -103,9 +127,10 @@ function calculator(ctx, { selected, values = {}, errors = {}, formError = '', h
   const inv = (k) => raw(errors[k] ? ` aria-invalid="true" aria-describedby="e-${k}"` : ` aria-describedby="e-${k}"`);
   const c = ctx.content;
   const H = headingTag;
+  const tg = tgBase(ctx.company.tg_username);
 
   return html`
-<form class="calc" method="post" action="/zayavka" novalidate data-calc data-lead-form id="${id}">
+<form class="calc" method="post" action="/zayavka" novalidate data-calc data-lead-form id="${id}"${tg ? html` data-tg="${tg}"` : ''}>
   <input type="hidden" name="kind" value="order">
   <input type="hidden" name="ts" value="" data-ts>
   <div class="hp" aria-hidden="true"><label>Сайт <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -113,12 +138,12 @@ function calculator(ctx, { selected, values = {}, errors = {}, formError = '', h
     ${formError ? html`<div class="alert alert--err" role="alert">${icon('alert')}<span>${formError}</span></div>` : ''}
     <fieldset class="fs">
       <legend><span class="fs__n">01</span>Какая уборка нужна</legend>
-      <div class="opts" role="radiogroup">
+      <div class="opts opts--svc" role="radiogroup">
         ${svcs.map((s) => html`<label class="opt">
           <input type="radio" name="service_id" value="${s.id}" ${sel && sel.id === s.id ? raw('checked') : ''}
             data-price="${s.price}" data-area="${s.per_area}" data-min="${s.min_price}" data-unit="${unitOf(s)}" data-name="${s.name}">
           <span class="opt__mark"></span>
-          <span><span class="opt__n">${s.name}</span><span class="opt__d">${s.summary}</span><span class="opt__p">от ${fmt(s.price)} ${unitOf(s)}</span></span>
+          <span><span class="opt__n">${s.name}</span><span class="opt__p">от ${fmt(s.price)} ${unitOf(s)}${s.min_price ? html`<span class="opt__min"> · мин. ${rub(s.min_price)}</span>` : ''}</span></span>
         </label>`)}
       </div>
       ${err('service_id')}
@@ -140,24 +165,23 @@ function calculator(ctx, { selected, values = {}, errors = {}, formError = '', h
 
     ${ctx.addons.length ? html`<fieldset class="fs">
       <legend><span class="fs__n">03</span>Дополнительно <small class="fs__opt">— по желанию</small></legend>
-      <div class="opts">
-        ${ctx.addons.map((a) => html`<label class="opt opt--check">
+      <div class="opts opts--addons">
+        ${ctx.addons.map((a) => html`<label class="opt opt--check"${a.note ? html` title="${a.note}"` : ''}>
           <input type="checkbox" name="addons" value="${a.id}" data-price="${a.price}" data-name="${a.name}" ${chosenAddons.has(a.id) ? raw('checked') : ''}>
           <span class="opt__mark"></span>
-          <span><span class="opt__n">${a.name}</span>${a.note ? html`<span class="opt__d">${a.note}</span>` : ''}<span class="opt__p">+ ${rub(a.price)}</span></span>
+          <span><span class="opt__n">${a.name}</span><span class="opt__p">+ ${rub(a.price)}</span></span>
         </label>`)}
       </div>
     </fieldset>` : ''}
 
     <fieldset class="fs">
-      <legend><span class="fs__n">${ctx.addons.length ? '04' : '03'}</span>Куда перезвонить</legend>
-      <div class="fgrid">
+      <legend><span class="fs__n">${ctx.addons.length ? '04' : '03'}</span>${tg ? 'Как к вам обращаться' : 'Куда перезвонить'}</legend>
+      <div class="fgrid fgrid--3">
         <div class="field"><label for="f-name">Имя</label><input class="input" id="f-name" name="name" autocomplete="name" required maxlength="80" value="${values.name || ''}"${inv('name')}>${err('name')}</div>
-        <div class="field"><label for="f-phone">Телефон</label><input class="input" id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="+7 900 000-00-00" value="${values.phone || ''}"${inv('phone')} data-phone>${err('phone')}</div>
+        <div class="field"><label for="f-phone">Телефон${tg ? html` <i>— необязательно</i>` : ''}</label><input class="input" id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"${tg ? '' : raw(' required')} placeholder="+7 900 000-00-00" value="${values.phone || ''}"${inv('phone')} data-phone>${err('phone')}</div>
         <div class="field"><label for="f-email">Email <i>— необязательно</i></label><input class="input" id="f-email" name="email" type="email" autocomplete="email" maxlength="120" value="${values.email || ''}"${inv('email')}>${err('email')}</div>
-        <div class="field"><label for="f-date">Желаемая дата <i>— необязательно</i></label><input class="input" id="f-date" name="preferred_date" type="date" min="${ctx.today}" value="${values.preferred_date || ''}"${inv('preferred_date')}>${err('preferred_date')}</div>
         <div class="field full"><label for="f-address">Адрес или район <i>— необязательно</i></label><input class="input" id="f-address" name="address" autocomplete="street-address" maxlength="200" value="${values.address || ''}"></div>
-        <div class="field full"><label for="f-comment">Комментарий <i>— этаж, питомцы, особые поверхности</i></label><textarea class="input" id="f-comment" name="comment" maxlength="1500" rows="3">${values.comment || ''}</textarea></div>
+        <div class="field full"><label for="f-comment">Комментарий <i>— этаж, питомцы, особые поверхности</i></label><textarea class="input" id="f-comment" name="comment" maxlength="1500" rows="2">${values.comment || ''}</textarea></div>
         <label class="consent full"><input type="checkbox" name="consent" value="1" ${values.consent ? raw('checked') : ''}${inv('consent')}><span>Согласен(на) на обработку персональных данных в соответствии с <a href="/politika" target="_blank">политикой конфиденциальности</a></span></label>
         <div class="full">${err('consent')}</div>
       </div>
@@ -171,7 +195,7 @@ function calculator(ctx, { selected, values = {}, errors = {}, formError = '', h
     <p class="sum__note">Это ориентир по ценам сайта. Итоговую сумму подтвердим по телефону до начала работ — после уточнения состояния помещения.</p>
     <div class="err" data-form-error role="alert"></div>
     <button class="btn btn--block" type="submit" data-submit><span class="spinner" aria-hidden="true"></span><span data-submit-label>${c.submit_text}</span></button>
-    <p class="sum__note">Перезвоним в рабочее время. Или позвоните сами: <a href="${telHref(ctx.company.phone)}">${phoneText(ctx.company.phone)}</a></p>
+    <p class="sum__note">После отправки откроется окно с вашей заявкой — её можно сразу отправить нам в Telegram. Или позвоните: <a href="${telHref(ctx.company.phone)}">${phoneText(ctx.company.phone)}</a></p>
   </aside>
 </form>`;
 }
@@ -182,7 +206,6 @@ function home(ctx) {
   const featured = ctx.services.filter((s) => s.featured);
   const rest = ctx.services.filter((s) => !s.featured);
   const tagSvc = featured[0] || ctx.services[0];
-  const ribbon = ctx.services.slice(0, 4);
   const points = lines(c.hero_points);
 
   const body = html`
@@ -205,9 +228,6 @@ function home(ctx) {
   </div>
 </section>
 
-${ribbon.length ? html`<div class="wrap"><nav class="ribbon" aria-label="Популярные услуги и цены"><div class="ribbon__in">
-  ${ribbon.map((s) => html`<a href="/uslugi/${s.slug}"><span class="ribbon__n">${s.name}</span><span class="ribbon__p">${priceFrom(s)} <small>${unitOf(s)}</small></span></a>`)}
-</div></nav></div>` : ''}
 
 ${b.show_featured && ctx.services.length ? html`<section class="sec" id="services" aria-labelledby="svc-t">
   <div class="wrap">
@@ -215,28 +235,17 @@ ${b.show_featured && ctx.services.length ? html`<section class="sec" id="service
       <div><span class="eyebrow">Услуги</span><h2 class="h2" id="svc-t">${c.services_title}</h2><p class="lead">${c.services_text}</p></div>
       <a class="link" href="/ceny">Полный прайс-лист ${icon('arrow', { size: 16 })}</a>
     </div>
-    ${(featured.length ? featured : ctx.services.slice(0, 3)).map(serviceRow)}
+    <div class="scards">${(featured.length ? featured : ctx.services.slice(0, 3)).map(serviceCard)}</div>
     ${rest.length && featured.length ? html`<div class="more rv"><h3 class="more__t" id="more">Ещё услуги</h3>${priceTable(rest, { compact: true })}</div>` : ''}
   </div>
 </section>` : ''}
 
-${b.show_advantages && ctx.advantages.length ? html`<section class="sec sec--alt" aria-labelledby="adv-t">
-  <div class="wrap adv">
-    <div class="adv__aside rv">
-      <span class="eyebrow">Условия работы</span>
-      <h2 class="h2" id="adv-t">${c.adv_title}</h2>
-      ${img('/static/img/kit.svg', 'Инвентарь, который привозит исполнитель: моющие средства, микрофибра, щётки', { cls: 'adv__img' })}
-    </div>
-    <ol class="olist rv">${ctx.advantages.map((a) => html`<li><div><h3 class="h3">${a.title}</h3><p>${a.body}</p></div></li>`)}</ol>
-  </div>
-</section>` : ''}
-
-${b.show_process && ctx.steps.length ? html`<section class="sec dark" id="process" aria-labelledby="proc-t">
+${(b.show_process && ctx.steps.length) || (b.show_advantages && ctx.advantages.length) ? html`<section class="sec dark" id="process" aria-labelledby="proc-t">
   <div class="wrap">
     <span class="eyebrow">Как это работает</span>
     <h2 class="h2" id="proc-t">${c.process_title}</h2>
-    <ol class="steps">${ctx.steps.map((s) => html`<li class="rv"><div><h3>${s.title}</h3><p>${s.body}</p></div></li>`)}</ol>
-    <a class="btn btn--light" href="/raschet">${c.hero_cta} ${icon('arrow', { size: 18, cls: 'i--move' })}</a>
+    ${b.show_process && ctx.steps.length ? html`<ol class="steps">${ctx.steps.map((s) => html`<li class="rv"><div><h3>${s.title}</h3><p>${s.body}</p></div></li>`)}</ol>` : ''}
+    ${b.show_advantages && ctx.advantages.length ? html`<ul class="terms rv" aria-label="${c.adv_title}">${ctx.advantages.map((a) => html`<li>${icon('check', { size: 18 })}<div><h3>${a.title}</h3><p>${a.body}</p></div></li>`)}</ul>` : ''}
   </div>
 </section>` : ''}
 
@@ -256,8 +265,7 @@ ${b.show_reviews && ctx.reviews.length ? html`<section class="sec" aria-labelled
 
 ${b.show_faq ? faqBlock(ctx, ctx.faq) : ''}
 
-${b.show_areas ? areasBlock(ctx) : ''}
-${finalCta(ctx)}`;
+${finalCta(ctx, { areas: !!b.show_areas })}`;
 
   return page(ctx, { canonical: '/', jsonld: ctx.jsonld }, body);
 }
@@ -393,6 +401,7 @@ ${faqBlock(ctx, ctx.faq.slice(0, 4))}`;
 // ---------- Контакты ----------
 function contacts(ctx, { values = {}, errors = {}, formError = '' } = {}) {
   const co = ctx.company;
+  const tg = tgBase(co.tg_username);
   const areas = lines(co.areas);
   const err = (k) => html`<span class="err" id="e-${k}" data-err="${k}">${errors[k] || ''}</span>`;
   const inv = (k) => raw(errors[k] ? ` aria-invalid="true" aria-describedby="e-${k}"` : ` aria-describedby="e-${k}"`);
@@ -413,19 +422,19 @@ function contacts(ctx, { values = {}, errors = {}, formError = '' } = {}) {
     ${co.legal_name || co.inn ? html`<li><span class="k">Реквизиты</span><span class="v">${co.legal_name}${co.inn ? html`<br>ИНН ${co.inn}` : ''}${co.ogrn ? html`<br>ОГРН ${co.ogrn}` : ''}</span></li>` : ''}
   </ul>
   <div class="panel" id="callback">
-    <h2 class="h3">Заказать обратный звонок</h2>
-    <p class="muted small">Оставьте телефон — перезвоним в рабочее время.</p>
-    <form method="post" action="/zayavka" novalidate data-lead-form class="fgrid" id="cb-form">
+    <h2 class="h3">Задать вопрос или заказать звонок</h2>
+    <p class="muted small">Оставьте контакты — перезвоним в рабочее время. После отправки сообщение можно будет сразу переслать нам в Telegram.</p>
+    <form method="post" action="/zayavka" novalidate data-lead-form class="fgrid" id="cb-form"${tg ? html` data-tg="${tg}"` : ''}>
       <input type="hidden" name="kind" value="callback"><input type="hidden" name="ts" value="" data-ts>
       <div class="hp" aria-hidden="true"><label>Сайт <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
       ${formError ? html`<div class="alert alert--err full" role="alert">${icon('alert')}<span>${formError}</span></div>` : ''}
       <div class="field full"><label for="c-name">Имя</label><input class="input" id="c-name" name="name" autocomplete="name" required maxlength="80" value="${values.name || ''}"${inv('name')}>${err('name')}</div>
-      <div class="field full"><label for="c-phone">Телефон</label><input class="input" id="c-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="+7 900 000-00-00" value="${values.phone || ''}"${inv('phone')} data-phone>${err('phone')}</div>
+      <div class="field full"><label for="c-phone">Телефон${tg ? html` <i>— необязательно</i>` : ''}</label><input class="input" id="c-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"${tg ? '' : raw(' required')} placeholder="+7 900 000-00-00" value="${values.phone || ''}"${inv('phone')} data-phone>${err('phone')}</div>
       <div class="field full"><label for="c-time">Когда удобно говорить <i>— необязательно</i></label><input class="input" id="c-time" name="contact_time" maxlength="40" placeholder="Например, после 18:00" value="${values.contact_time || ''}"></div>
       <div class="field full"><label for="c-comment">Вопрос <i>— необязательно</i></label><textarea class="input" id="c-comment" name="comment" rows="3" maxlength="1500">${values.comment || ''}</textarea></div>
       <label class="consent full"><input type="checkbox" name="consent" value="1"${inv('consent')} ${values.consent ? raw('checked') : ''}><span>Согласен(на) на обработку персональных данных по <a href="/politika" target="_blank">политике конфиденциальности</a></span></label>
       <div class="full">${err('consent')}<div class="err" data-form-error role="alert"></div></div>
-      <button class="btn full" type="submit" data-submit><span class="spinner" aria-hidden="true"></span><span data-submit-label>Перезвоните мне</span></button>
+      <button class="btn full" type="submit" data-submit><span class="spinner" aria-hidden="true"></span><span data-submit-label>Отправить заявку</span></button>
     </form>
   </div>
 </div></section>`;

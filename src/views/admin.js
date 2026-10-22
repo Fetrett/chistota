@@ -126,7 +126,7 @@ function login({ error, problem }) {
 }
 
 // ---------- Обзор ----------
-function dashboard(ctx, { counts, recent, checks, tg }) {
+function dashboard(ctx, { counts, recent, checks }) {
   const body = html`
 ${ph(`Здравствуйте${ctx.user.name ? ', ' + ctx.user.name : ''}`, 'Сводка по заявкам и состоянию сайта.')}
 <div class="stats">
@@ -138,7 +138,7 @@ ${ph(`Здравствуйте${ctx.user.name ? ', ' + ctx.user.name : ''}`, 'С
 <div class="grid-main">
   <section class="card">
     <div class="card__h"><h2>Последние заявки</h2><a href="/admin/leads">Все заявки →</a></div>
-    ${recent.length ? leadsTable(ctx, recent, { compact: true }) : html`<div class="empty">${icon('inbox', { size: 36 })}<b>Заявок пока нет</b>Заявки приходят в Telegram, а копия сохраняется здесь.</div>`}
+    ${recent.length ? leadsTable(ctx, recent, { compact: true }) : html`<div class="empty">${icon('inbox', { size: 36 })}<b>Заявок пока нет</b>Когда клиент отправит заявку с сайта или откроет чат в Telegram, копия появится здесь.</div>`}
   </section>
   <div class="cards">
     <section class="card"><div class="card__h"><h2>Быстрые действия</h2></div><div class="card__b quick">
@@ -149,7 +149,7 @@ ${ph(`Здравствуйте${ctx.user.name ? ', ' + ctx.user.name : ''}`, 'С
     </div></section>
     <section class="card"><div class="card__h"><h2>Перед запуском</h2></div><div class="card__b">
       <ul class="checklist">${checks.map((c) => html`<li>${icon(c.ok ? 'check' : 'alert', { size: 18, cls: c.ok ? 'ok' : 'todo' })}<span>${c.href && !c.ok ? html`<a href="${c.href}">${c.text}</a>` : c.text}</span></li>`)}</ul>
-    </div>${tg ? html`<div class="card__f"><form method="post" action="/admin/telegram-test" data-busy>${csrf(ctx)}<button class="btn btn--ghost btn--sm" type="submit">${icon('send', { size: 15 })}Проверить Telegram</button></form></div>` : ''}</section>
+    </div></section>
   </div>
 </div>`;
   return layout(ctx, { title: 'Обзор', active: 'dash' }, body);
@@ -160,7 +160,7 @@ function leadsTable(ctx, rows, { compact = false, back = '' } = {}) {
   return html`<div class="tablewrap"><table class="t t--cards"><thead><tr><th>№ и дата</th><th>Клиент</th><th>Услуга</th><th class="r">Ориентир</th><th>Статус</th></tr></thead><tbody>
   ${rows.map((l) => html`<tr>
     <td><a class="rowlink" href="/admin/leads/${l.id}">№${l.id}</a><span class="sub nowrap">${dateRu(l.created_at)}</span></td>
-    <td><a class="rowlink" href="/admin/leads/${l.id}">${l.name}</a><span class="sub nowrap">${prettyPhone(l.phone)}</span></td>
+    <td><a class="rowlink" href="/admin/leads/${l.id}">${l.name}</a><span class="sub nowrap">${l.phone ? prettyPhone(l.phone) : ''}${l.channel === 'telegram' ? html`${l.phone ? ' · ' : ''}через Telegram` : ''}</span></td>
     <td data-l="Услуга">${l.kind === 'callback' ? html`<span class="badge badge--plain">Обратный звонок</span>` : html`${l.service_name}${l.qty ? html`<span class="sub">объём: ${l.qty}</span>` : ''}`}</td>
     <td class="r num" data-l="Ориентир">${l.estimate ? rub(l.estimate) : '—'}</td>
     <td>${compact ? badge(l.status) : html`<form class="statusform" method="post" action="/admin/leads/${l.id}/status" data-autosubmit>${csrf(ctx)}<input type="hidden" name="back" value="${back}">
@@ -175,7 +175,7 @@ function leads(ctx, { result, q, status, kind, counts, back }) {
   const qs = (o) => { const p = new URLSearchParams({ ...(q ? { q } : {}), ...(kind ? { kind } : {}), ...o }); for (const [k, v] of [...p]) if (!v) p.delete(k); const s = p.toString(); return '/admin/leads' + (s ? '?' + s : ''); };
   const tabs = [['', 'Все', counts.all], ...Object.entries(STATUSES).map(([k, s]) => [k, s.label, counts[k]])];
   const body = html`
-${ph('Заявки', 'Каждая заявка сразу уходит в Telegram, а здесь хранится копия. Меняйте статус по мере работы — новые подсвечиваются в меню.')}
+${ph('Заявки', 'Все заявки с сайта. Меняйте статус по мере работы. Клиент также может переслать заявку вам в Telegram — номер заявки будет в его сообщении.', counts.all ? html`<form method="post" action="/admin/leads/clear" data-confirm="Будут удалены все заявки (${counts.all} шт.) без возможности восстановления. Нумерация начнётся с №1.">${csrf(ctx)}<button class="btn btn--danger" type="submit">${icon('trash', { size: 16 })}Удалить все заявки</button></form>` : '')}
 <section class="card">
   <div class="filters">
     <nav class="tabs" aria-label="Фильтр по статусу">${tabs.map(([k, l, n]) => html`<a href="${qs({ status: k, page: '' })}" aria-current="${status === k ? 'true' : 'false'}">${l}<span>${n || 0}</span></a>`)}</nav>
@@ -199,14 +199,15 @@ function lead(ctx, l) {
   const base = l.estimate ? l.estimate - addons.reduce((s, a) => s + a.price, 0) : 0;
   const body = html`
 ${ph(`Заявка №${l.id}`, html`${KINDS[l.kind] || ''} · ${dateRu(l.created_at)}`, html`
-  <a class="btn" href="${telHref(l.phone)}">${icon('phone', { size: 16 })}Позвонить</a>
+  ${l.phone ? html`<a class="btn" href="${telHref(l.phone)}">${icon('phone', { size: 16 })}Позвонить</a>` : ''}
   ${l.email ? html`<a class="btn btn--ghost" href="mailto:${l.email}">${icon('mail', { size: 16 })}Написать</a>` : ''}`, ['/admin/leads', 'Все заявки'])}
 <div class="grid-main">
   <section class="card"><div class="card__h"><h2>Клиент и заказ</h2>${badge(l.status)}</div><div class="card__b">
     <dl class="dl">
       <dt>Имя</dt><dd class="big">${l.name}</dd>
-      <dt>Телефон</dt><dd><a href="${telHref(l.phone)}" class="nowrap">${prettyPhone(l.phone)}</a></dd>
+      <dt>Телефон</dt><dd>${l.phone ? html`<a href="${telHref(l.phone)}" class="nowrap">${prettyPhone(l.phone)}</a>` : '—'}</dd>
       <dt>Email</dt><dd>${l.email ? html`<a href="mailto:${l.email}">${l.email}</a>` : '—'}</dd>
+      <dt>Как связался</dt><dd>${l.channel === 'telegram' ? 'Открыл чат в Telegram с готовым сообщением — проверьте Telegram' : 'Оставил заявку на сайте — перезвоните'}</dd>
       ${l.kind === 'order' ? html`<dt>Услуга</dt><dd>${l.service_name || '—'}${l.qty ? html` · ${l.qty}` : ''}</dd>` : ''}
       <dt>Адрес</dt><dd>${l.address || '—'}</dd>
       <dt>Желаемая дата</dt><dd>${l.preferred_date ? dateRu(l.preferred_date, false) : '—'}</dd>
@@ -446,7 +447,7 @@ ${ph('Контакты и соцсети', 'Телефон, почта и час
         ${f('areas', 'Районы обслуживания', { textarea: true, rows: 6, max: 1500, hint: 'Каждый район с новой строки.' })}
       </div></section>
       <section class="card"><div class="card__h"><h2>Мессенджеры и соцсети</h2></div><div class="card__b form">
-        ${f('telegram', 'Telegram', { optional: true, placeholder: 'https://t.me/username', max: 300 })}
+        ${f('tg_username', 'Telegram для заявок', { optional: true, placeholder: '@username', max: 60, hint: 'Ваш логин в Telegram (Настройки → Имя пользователя). На сайте появится кнопка «Написать в Telegram»: откроется чат с вами, и заявка будет уже вписана. Можно указать номер телефона, но логин надёжнее.' })}
         ${f('whatsapp', 'WhatsApp', { optional: true, placeholder: 'https://wa.me/79000000000', max: 300 })}
         ${f('vk', 'ВКонтакте', { optional: true, placeholder: 'https://vk.com/…', max: 300 })}
         <p class="hint">Пустые ссылки на сайте не показываются.</p>

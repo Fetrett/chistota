@@ -16,7 +16,8 @@ async function purgeCdn() {
   catch (e) { console.error('[purge]', e.message); }
 }
 
-async function handle(request, { ip } = {}) {
+async function handle(request, { ip, deployId } = {}) {
+  if (deployId) require('./config').version = String(deployId).slice(-10);
   let req; const res = makeRes();
   try {
     req = await makeReq(request, ip);

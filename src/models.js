@@ -77,7 +77,7 @@ const Items = {
   move(id, dir) { const it = this.get(id); if (it) moveIn(C().items.filter((i) => i.kind === it.kind), id, dir); },
 };
 
-// ---------- Заявки (копия того, что ушло в Telegram) ----------
+// ---------- Заявки (копии заявок с сайта) ----------
 const MAX_LEADS = 2000;
 const L = () => state.leads;
 const Leads = {
@@ -107,6 +107,8 @@ const Leads = {
   update(id, { status, note }) { const l = L().items.find((x) => x.id === Number(id)); if (l) { Object.assign(l, { status, note, updated_at: sqlNow() }); touchLeads(); } },
   setStatus(id, status) { this.update(id, { status, note: (this.get(id) || {}).note || '' }); },
   remove(id) { L().items = L().items.filter((l) => l.id !== Number(id)); touchLeads(); },
+  /** Удаляет все заявки и начинает нумерацию заново с №1. */
+  clear() { const n = L().items.length; L().items = []; L().seq = 0; touchLeads(); return n; },
   recentFromIpHash(h, minutes) {
     const since = Date.now() - minutes * 60000;
     return L().items.filter((l) => l.ip_hash === h && Date.parse(l.created_at.replace(' ', 'T') + 'Z') >= since).length;

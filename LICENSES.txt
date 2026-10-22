@@ -1,4 +1,0 @@
-Inter: SIL Open Font License 1.1 — https://github.com/rsms/inter (© The Inter Project Authors)
-Lora: SIL Open Font License 1.1 — https://github.com/cyrealtype/Lora-Cyrillic (© The Lora Project Authors)
-Files in this folder are Latin+Cyrillic subsets converted to WOFF.
-Full license text: https://openfontlicense.org

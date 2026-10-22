@@ -1,7 +1,7 @@
 'use strict';
 /** Общий каркас публичных страниц: <head>, шапка, мобильное меню, подвал. */
 const cfg = require('../config');
-const { html, raw, lines, telHref, normPhone, prettyPhone } = require('../util');
+const { html, raw, lines, telHref, normPhone, prettyPhone, tgBase } = require('../util');
 const { icon } = require('../icons');
 
 const NAV = [
@@ -92,8 +92,9 @@ ${ctx.site.demo_notice ? html`<div class="demo-bar"><strong>Демонстрац
 }
 
 function socials(c, cls = 'link') {
-  const list = [['telegram', 'Telegram'], ['whatsapp', 'WhatsApp'], ['vk', 'ВКонтакте']].filter(([k]) => c[k]);
-  return list.map(([k, label]) => html`<a class="${cls}" href="${c[k]}" target="_blank" rel="noopener noreferrer">${label}</a>`);
+  const links = { telegram: tgBase(c.tg_username) || c.telegram, whatsapp: c.whatsapp, vk: c.vk };
+  const list = [['telegram', 'Telegram'], ['whatsapp', 'WhatsApp'], ['vk', 'ВКонтакте']].filter(([k]) => links[k]);
+  return list.map(([k, label]) => html`<a class="${cls}" href="${links[k]}" target="_blank" rel="noopener noreferrer">${label}</a>`);
 }
 
 function footer(ctx) {

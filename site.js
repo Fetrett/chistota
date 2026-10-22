@@ -155,7 +155,6 @@
       var errs = clientCheck();
       showErrors(errs);
       if (Object.keys(errs).length) return;
-      if (form.dataset.tg) { openTelegram(); return; }
 
       btn.disabled = true; btn.classList.add('is-loading'); if (label) label.textContent = 'Отправляем…';
       fetch(form.action, { method: 'POST', body: new URLSearchParams(new FormData(form)), headers: { Accept: 'application/json' }, credentials: 'same-origin' })
@@ -198,66 +197,75 @@
       if (val('contact_time')) L.push('Удобно связаться: ' + val('contact_time'));
       return L.join('\n');
     }
-    function openTelegram() {
-      var text = buildMessage();
-      var url = form.dataset.tg + '?text=' + encodeURIComponent(text);
-      // Окно открываем сразу в обработчике клика, иначе браузер его заблокирует
-      var w = null; try { w = window.open(url, '_blank'); if (w) w.opener = null; } catch (err) { w = null; }
-      // Копия заявки для админки (на случай, если клиент не нажмёт «Отправить» в Telegram)
-      try {
-        var body = new URLSearchParams(new FormData(form)); body.set('channel', 'telegram');
-        if (navigator.sendBeacon) navigator.sendBeacon(form.action, body);
-        else fetch(form.action, { method: 'POST', body: body, keepalive: true, headers: { Accept: 'application/json' } });
-      } catch (err) { /* копия не критична */ }
-      doneTelegram(url, text, !w);
+    function selectText(el) { var r = document.createRange(); r.selectNodeContents(el); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+    function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+    // Заявка сохранена на сервере → на месте формы короткое подтверждение + окно с сообщением для Telegram
+    function done(res) {
+      var text = (res.id ? 'Заявка №' + res.id + ' с сайта\n' : '') + buildMessage();
+      var tg = form.dataset.tg || '';
+      var box = el('div', 'form-done'); box.setAttribute('role', 'status'); box.tabIndex = -1;
+      box.appendChild(el('h3', 'h3', res.id ? 'Заявка №' + res.id + ' принята' : 'Заявка принята'));
+      box.appendChild(el('p', '', 'Спасибо! Перезвоним в рабочее время, уточним детали и подтвердим стоимость.'));
+      var again = el('button', 'btn btn--ghost', 'Показать сообщение для Telegram'); again.type = 'button';
+      var act0 = el('div', 'form-done__act'); act0.appendChild(again); box.appendChild(act0);
+      form.replaceWith(box);
+      var dlg = buildDialog(res, text, tg);
+      again.addEventListener('click', function () { dlg.open(again); });
+      dlg.open(box);
     }
-    function doneTelegram(url, text, blocked) {
-      var box = document.createElement('div');
-      box.className = 'form-done'; box.setAttribute('role', 'status'); box.tabIndex = -1;
-      var h = document.createElement('h3'); h.className = 'h3';
-      h.textContent = blocked ? 'Осталось открыть Telegram' : 'Нажмите «Отправить» в Telegram';
-      var p = document.createElement('p');
-      p.textContent = blocked
-        ? 'Нажмите кнопку ниже — откроется чат с нами, сообщение уже будет вписано.'
-        : 'Мы открыли чат с нами — сообщение уже вписано, его можно дополнить. Если чат не открылся, нажмите кнопку ниже.';
-      var msg = document.createElement('pre'); msg.className = 'form-done__msg'; msg.textContent = text;
-      var act = document.createElement('div'); act.className = 'form-done__act';
-      var a = document.createElement('a'); a.className = 'btn btn--tg'; a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Открыть чат в Telegram';
-      var c = document.createElement('button'); c.type = 'button'; c.className = 'btn btn--ghost'; c.textContent = 'Скопировать текст';
-      c.addEventListener('click', function () {
-        var ok = function () { c.textContent = 'Скопировано'; };
+
+    function buildDialog(res, text, tg) {
+      var wrap = el('div', 'ldlg'); wrap.hidden = true;
+      var boxEl = el('div', 'ldlg__box'); boxEl.setAttribute('role', 'dialog'); boxEl.setAttribute('aria-modal', 'true');
+      var tid = 'ldlg-t-' + (res.id || Date.now()); boxEl.setAttribute('aria-labelledby', tid);
+      var x = el('button', 'ldlg__x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Закрыть');
+      var h = el('h3', 'h3', 'Отправьте заявку нам в Telegram'); h.id = tid;
+      var p = el('p', 'ldlg__lead', res.id
+        ? 'Заявка №' + res.id + ' уже у нас. Чтобы получить ответ быстрее, отправьте её в Telegram — текст уже готов.'
+        : 'Текст заявки уже готов — отправьте его нам в Telegram.');
+      var msg = el('pre', 'form-done__msg', text);
+      var act = el('div', 'form-done__act');
+      var send;
+      if (tg) {
+        send = el('a', 'btn btn--tg', 'Отправить в Telegram');
+        send.href = tg + '?text=' + encodeURIComponent(text); send.target = '_blank'; send.rel = 'noopener';
+      } else {
+        send = el('button', 'btn btn--tg', 'Отправить в Telegram'); send.type = 'button';
+      }
+      var copy = el('button', 'btn btn--ghost', 'Скопировать текст'); copy.type = 'button';
+      var note = el('p', 'ldlg__note'); note.setAttribute('aria-live', 'polite');
+      act.appendChild(send); act.appendChild(copy);
+      boxEl.appendChild(x); boxEl.appendChild(h); boxEl.appendChild(p); boxEl.appendChild(msg); boxEl.appendChild(act); boxEl.appendChild(note);
+      wrap.appendChild(boxEl); document.body.appendChild(wrap);
+
+      if (!tg) send.addEventListener('click', function () {
+        // Заглушка: Telegram владельца ещё не указан в админке
+        note.textContent = 'Здесь откроется чат с нами в Telegram, и это сообщение уже будет вписано. Кнопка заработает, как только мы подключим Telegram.';
+      });
+      copy.addEventListener('click', function () {
+        var ok = function () { copy.textContent = 'Скопировано'; };
         if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, function () { selectText(msg); });
         else selectText(msg);
       });
-      act.appendChild(a); act.appendChild(c);
-      box.appendChild(h); box.appendChild(p); box.appendChild(msg); box.appendChild(act);
-      form.replaceWith(box);
-      box.focus({ preventScroll: true });
-      box.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
-    }
-    function selectText(el) { var r = document.createRange(); r.selectNodeContents(el); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
-
-    function done(res) {
-      // Подтверждение показываем только после ответа сервера о сохранении заявки.
-      // Пока владелец не указал Telegram, кнопка «Написать в Telegram» — заглушка.
-      var text = buildMessage();
-      var box = document.createElement('div');
-      box.className = 'form-done'; box.setAttribute('role', 'status'); box.tabIndex = -1;
-      var h = document.createElement('h3'); h.className = 'h3';
-      h.textContent = res.id ? 'Заявка №' + res.id + ' принята' : 'Заявка принята';
-      var p = document.createElement('p');
-      p.textContent = 'Спасибо! Перезвоним в рабочее время, уточним детали и подтвердим стоимость. Ваше сообщение:';
-      var msg = document.createElement('pre'); msg.className = 'form-done__msg'; msg.textContent = text;
-      var act = document.createElement('div'); act.className = 'form-done__act';
-      var tgBtn = document.createElement('button'); tgBtn.type = 'button'; tgBtn.className = 'btn btn--tg'; tgBtn.disabled = true;
-      tgBtn.setAttribute('aria-describedby', 'tg-soon'); tgBtn.textContent = 'Написать в Telegram';
-      act.appendChild(tgBtn);
-      var note = document.createElement('p'); note.className = 'form-done__soon'; note.id = 'tg-soon';
-      note.textContent = 'Скоро здесь можно будет сразу написать нам в Telegram.';
-      box.appendChild(h); box.appendChild(p); box.appendChild(msg); box.appendChild(act); box.appendChild(note);
-      form.replaceWith(box);
-      box.focus({ preventScroll: true });
-      box.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+      var back = null;
+      function close() { wrap.hidden = true; document.body.classList.remove('dlg-open'); document.removeEventListener('keydown', onKey); if (back) back.focus({ preventScroll: true }); }
+      function onKey(e) {
+        if (e.key === 'Escape') close();
+        if (e.key === 'Tab') {
+          var f = $$('a, button', boxEl); var first = f[0], last = f[f.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      }
+      x.addEventListener('click', close);
+      wrap.addEventListener('click', function (e) { if (e.target === wrap) close(); });
+      return {
+        open: function (from) {
+          back = from || null; wrap.hidden = false; document.body.classList.add('dlg-open');
+          document.addEventListener('keydown', onKey); send.focus({ preventScroll: true });
+        },
+      };
     }
   }
 

@@ -194,10 +194,8 @@ function calculator(ctx, { selected, values = {}, errors = {}, formError = '', h
     <ul class="sum__lines" data-lines>${sel ? html`<li><span>${sel.name}</span><span></span></li>` : html`<li><span>Услуга не выбрана</span><span>—</span></li>`}</ul>
     <p class="sum__note">Это ориентир по ценам сайта. Итоговую сумму подтвердим по телефону до начала работ — после уточнения состояния помещения.</p>
     <div class="err" data-form-error role="alert"></div>
-    ${tg ? html`<button class="btn btn--block btn--tg" type="submit" data-submit>${icon('send', { size: 18 })}<span data-submit-label>Написать в Telegram</span></button>
-    <p class="sum__note">Откроется чат с нами в Telegram — сообщение с расчётом уже будет вписано, останется нажать «Отправить». Или позвоните: <a href="${telHref(ctx.company.phone)}">${phoneText(ctx.company.phone)}</a></p>`
-    : html`<button class="btn btn--block" type="submit" data-submit><span class="spinner" aria-hidden="true"></span><span data-submit-label>${c.submit_text}</span></button>
-    <p class="sum__note">Перезвоним в рабочее время. Или позвоните сами: <a href="${telHref(ctx.company.phone)}">${phoneText(ctx.company.phone)}</a></p>`}
+    <button class="btn btn--block" type="submit" data-submit><span class="spinner" aria-hidden="true"></span><span data-submit-label>${c.submit_text}</span></button>
+    <p class="sum__note">После отправки откроется окно с вашей заявкой — её можно сразу отправить нам в Telegram. Или позвоните: <a href="${telHref(ctx.company.phone)}">${phoneText(ctx.company.phone)}</a></p>
   </aside>
 </form>`;
 }
@@ -424,8 +422,8 @@ function contacts(ctx, { values = {}, errors = {}, formError = '' } = {}) {
     ${co.legal_name || co.inn ? html`<li><span class="k">Реквизиты</span><span class="v">${co.legal_name}${co.inn ? html`<br>ИНН ${co.inn}` : ''}${co.ogrn ? html`<br>ОГРН ${co.ogrn}` : ''}</span></li>` : ''}
   </ul>
   <div class="panel" id="callback">
-    <h2 class="h3">${tg ? 'Написать нам' : 'Заказать обратный звонок'}</h2>
-    <p class="muted small">${tg ? 'Опишите вопрос — откроется чат с нами в Telegram, сообщение уже будет вписано.' : 'Оставьте телефон — перезвоним в рабочее время.'}</p>
+    <h2 class="h3">Задать вопрос или заказать звонок</h2>
+    <p class="muted small">Оставьте контакты — перезвоним в рабочее время. После отправки сообщение можно будет сразу переслать нам в Telegram.</p>
     <form method="post" action="/zayavka" novalidate data-lead-form class="fgrid" id="cb-form"${tg ? html` data-tg="${tg}"` : ''}>
       <input type="hidden" name="kind" value="callback"><input type="hidden" name="ts" value="" data-ts>
       <div class="hp" aria-hidden="true"><label>Сайт <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -436,8 +434,7 @@ function contacts(ctx, { values = {}, errors = {}, formError = '' } = {}) {
       <div class="field full"><label for="c-comment">Вопрос <i>— необязательно</i></label><textarea class="input" id="c-comment" name="comment" rows="3" maxlength="1500">${values.comment || ''}</textarea></div>
       <label class="consent full"><input type="checkbox" name="consent" value="1"${inv('consent')} ${values.consent ? raw('checked') : ''}><span>Согласен(на) на обработку персональных данных по <a href="/politika" target="_blank">политике конфиденциальности</a></span></label>
       <div class="full">${err('consent')}<div class="err" data-form-error role="alert"></div></div>
-      ${tg ? html`<button class="btn btn--tg full" type="submit" data-submit>${icon('send', { size: 18 })}<span data-submit-label>Написать в Telegram</span></button>`
-        : html`<button class="btn full" type="submit" data-submit><span class="spinner" aria-hidden="true"></span><span data-submit-label>Перезвоните мне</span></button>`}
+      <button class="btn full" type="submit" data-submit><span class="spinner" aria-hidden="true"></span><span data-submit-label>Отправить заявку</span></button>
     </form>
   </div>
 </div></section>`;

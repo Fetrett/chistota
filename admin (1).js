@@ -175,7 +175,7 @@ function leads(ctx, { result, q, status, kind, counts, back }) {
   const qs = (o) => { const p = new URLSearchParams({ ...(q ? { q } : {}), ...(kind ? { kind } : {}), ...o }); for (const [k, v] of [...p]) if (!v) p.delete(k); const s = p.toString(); return '/admin/leads' + (s ? '?' + s : ''); };
   const tabs = [['', 'Все', counts.all], ...Object.entries(STATUSES).map(([k, s]) => [k, s.label, counts[k]])];
   const body = html`
-${ph('Заявки', 'Копии заявок с сайта. Если клиент выбрал «Написать в Telegram», сообщение придёт вам в Telegram, а здесь будет копия на случай, если он его не отправил. Меняйте статус по мере работы.')}
+${ph('Заявки', 'Все заявки с сайта. Меняйте статус по мере работы. Клиент также может переслать заявку вам в Telegram — номер заявки будет в его сообщении.', counts.all ? html`<form method="post" action="/admin/leads/clear" data-confirm="Будут удалены все заявки (${counts.all} шт.) без возможности восстановления. Нумерация начнётся с №1.">${csrf(ctx)}<button class="btn btn--danger" type="submit">${icon('trash', { size: 16 })}Удалить все заявки</button></form>` : '')}
 <section class="card">
   <div class="filters">
     <nav class="tabs" aria-label="Фильтр по статусу">${tabs.map(([k, l, n]) => html`<a href="${qs({ status: k, page: '' })}" aria-current="${status === k ? 'true' : 'false'}">${l}<span>${n || 0}</span></a>`)}</nav>

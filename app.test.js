@@ -127,7 +127,7 @@ test('Telegram владельца: кнопка появляется, телеф
   const r = await call('/admin/contacts', { method: 'POST', headers: { cookie, ...FORM }, body: form({ _csrf: csrf, name: 'Эксперты чистоты', city: 'Зеркальный', phone: '+7 912 111-22-33', tg_username: 'https://t.me/Owner_Name', hours: 'x', areas: 'y' }) });
   assert.equal(r.status, 303);
   h = await (await call('/raschet')).text();
-  assert.match(h, /data-tg="https:\/\/t\.me\/Owner_Name"/); assert.match(h, /Написать в Telegram/);
+  assert.match(h, /data-tg="https:\/\/t\.me\/Owner_Name"/); assert.match(h, /Отправить заявку/);
   assert.match(await (await call('/kontakty')).text(), /data-tg="https:\/\/t\.me\/Owner_Name"/);
   const bad = await call('/admin/contacts', { method: 'POST', headers: { cookie, ...FORM }, body: form({ _csrf: csrf, name: 'Э', city: 'З', phone: '+7 912 111-22-33', tg_username: 'a b' }) });
   assert.equal(bad.status, 422);
@@ -135,4 +135,21 @@ test('Telegram владельца: кнопка появляется, телеф
   assert.equal(j.ok, true, 'копия Telegram-заявки без телефона сохраняется');
   const list = await (await call('/admin/leads', { headers: { cookie } })).text();
   assert.match(list, /Олег/); assert.match(list, /через Telegram/);
+});
+
+test('очистка всех заявок и смена названия по всему сайту', async () => {
+  const { cookie, csrf } = await login();
+  await call('/zayavka', { method: 'POST', headers: { ...FORM, Accept: 'application/json' }, body: form({ kind: 'callback', ts: old(), name: 'Тест', phone: '89001112233', consent: '1' }), ip: '10.7.0.1' });
+  let r = await call('/admin/leads/clear', { method: 'POST', headers: { cookie, ...FORM }, body: form({ _csrf: csrf }) });
+  assert.equal(r.status, 303);
+  assert.match(await (await call('/admin/leads', { headers: { cookie } })).text(), /Заявок пока нет/);
+  const j = await (await call('/zayavka', { method: 'POST', headers: { ...FORM, Accept: 'application/json' }, body: form({ kind: 'callback', ts: old(), name: 'Новый', phone: '89001112233', consent: '1' }), ip: '10.7.0.2' })).json();
+  assert.equal(j.id, 1, 'нумерация с №1');
+  const before = await (await call('/admin/contacts', { headers: { cookie } })).text();
+  const cur = (n) => (new RegExp(`id="f-${n}"[^>]*value="([^"]*)"`).exec(before) || [])[1] || '';
+  r = await call('/admin/contacts', { method: 'POST', headers: { cookie, ...FORM }, body: form({ _csrf: csrf, name: 'Чистый дом', city: 'Берёзовский', city_in: 'Берёзовском', phone: '+7 912 111-22-33', address: cur('address'), hours: 'x', areas: 'y' }) });
+  assert.equal(r.status, 303);
+  const h = await (await call('/')).text();
+  assert.ok(!/Эксперты чистоты|Зеркальн/.test(h), 'старое название и город не остались');
+  assert.match(h, /Чистый дом/); assert.match(h, /Берёзовском/);
 });

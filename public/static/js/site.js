@@ -269,6 +269,59 @@
     }
   }
 
+  // ---------- Иллюстрации «до / после»: передвигаемый разделитель ----------
+  // Картинка /static/img/ba-NAME.svg заменяется двумя слоями ba-NAME-do.svg и ba-NAME-posle.svg.
+  // На странице услуги разделитель таскается мышью/пальцем и стрелками клавиатуры,
+  // в карточках-ссылках следует за курсором.
+  function initBeforeAfter() {
+    $$('img').forEach(function (im) {
+      var src = im.getAttribute('src') || '';
+      var m = /^(.*\/static\/img\/ba-[a-z0-9-]+)\.svg(\?.*)?$/.exec(src);
+      if (!m || /-(do|posle)$/.test(m[1])) return;
+      var base = m[1];
+      var link = im.closest('a');
+      var box = document.createElement('div');
+      box.className = 'ba' + (link ? ' ba--hover' : ' ba--drag');
+      var after = im.cloneNode(); after.src = base + '-posle.svg'; after.classList.add('ba__img');
+      var before = im.cloneNode(); before.src = base + '-do.svg'; before.classList.add('ba__img', 'ba__before'); before.alt = '';
+      var line = document.createElement('div'); line.className = 'ba__line';
+      line.innerHTML = '<span class="ba__knob" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 6l-6 6 6 6M15 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+      box.appendChild(after); box.appendChild(before); box.appendChild(line);
+      var set = function (p) { p = Math.max(0, Math.min(100, p)); box.style.setProperty('--p', p + '%'); if (range) range.value = String(Math.round(p)); };
+      var range = null;
+      if (!link) {
+        range = document.createElement('input');
+        range.type = 'range'; range.min = '0'; range.max = '100'; range.value = '50'; range.className = 'ba__range';
+        range.setAttribute('aria-label', 'Сравнение «до» и «после»: сдвиньте разделитель');
+        range.addEventListener('input', function () { box.classList.add('is-touched'); set(+range.value); });
+        box.appendChild(range);
+      } else {
+        var fromEvent = function (e) { var r = box.getBoundingClientRect(); return (e.clientX - r.left) / r.width * 100; };
+        box.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse') { box.classList.add('is-live'); set(fromEvent(e)); } });
+        box.addEventListener('pointerleave', function () { box.classList.remove('is-live'); set(50); });
+      }
+      set(50);
+      im.parentNode.replaceChild(box, im);
+      // Подсказка на странице услуги: разделитель один раз «качнётся», показывая, что его можно двигать
+      if (!link && !reduce && 'IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (es) {
+          if (!es[0].isIntersecting) return; io.disconnect();
+          var t0 = null;
+          var step = function (t) {
+            if (box.classList.contains('is-touched')) return;
+            if (t0 === null) t0 = t;
+            var k = (t - t0) / 1600; if (k > 1) { set(50); return; }
+            set(50 + Math.sin(k * Math.PI * 2) * 22 * (1 - k));
+            requestAnimationFrame(step);
+          };
+          setTimeout(function () { requestAnimationFrame(step); }, 500);
+        }, { threshold: 0.6 });
+        io.observe(box);
+      }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', initBeforeAfter);
+
   // ---------- Мягкое форматирование телефона ----------
   function initPhone(input) {
     input.addEventListener('blur', function () {

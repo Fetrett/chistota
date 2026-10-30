@@ -211,7 +211,7 @@ module.exports = {
       unit: "₽",
       min_price: 0,
       duration: "",
-      image: "https://images.unsplash.com/photo-1587527901949-ab0341697c1e?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/vannaya-do-posle.jpg",
       featured: 0,
       visible: 1
     },

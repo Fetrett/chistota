@@ -106,7 +106,7 @@ module.exports = {
       unit: "₽/м²",
       min_price: 0,
       duration: "около 6 часов",
-      image: "https://images.unsplash.com/photo-1758273238415-01ec03d9ef27?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-generalnaya.svg",
       featured: 1,
       visible: 1
     },
@@ -132,7 +132,7 @@ module.exports = {
       unit: "₽/м²",
       min_price: 0,
       duration: "около 4 часов",
-      image: "https://images.unsplash.com/photo-1758273705629-02e3c4bee11d?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-podderzhka.svg",
       featured: 1,
       visible: 1
     },
@@ -159,7 +159,7 @@ module.exports = {
       unit: "₽/м²",
       min_price: 0,
       duration: "около 8 часов",
-      image: "https://images.unsplash.com/photo-1625585598750-3535fe40efb3?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-remont.svg",
       featured: 1,
       visible: 1
     },
@@ -185,7 +185,7 @@ module.exports = {
       unit: "₽",
       min_price: 0,
       duration: "около 4 часов",
-      image: "https://images.unsplash.com/photo-1757387240036-d7eb9b096c40?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-kuhnya.svg",
       featured: 0,
       visible: 1
     },
@@ -211,7 +211,7 @@ module.exports = {
       unit: "₽",
       min_price: 0,
       duration: "",
-      image: "/static/img/vannaya-do-posle.jpg",
+      image: "/static/img/ba-vannaya.svg",
       featured: 0,
       visible: 1
     },
@@ -236,7 +236,7 @@ module.exports = {
       unit: "₽/шт",
       min_price: 0,
       duration: "",
-      image: "https://images.unsplash.com/photo-1759722667849-1a08d026db89?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-divan.svg",
       featured: 0,
       visible: 1
     },
@@ -261,7 +261,7 @@ module.exports = {
       unit: "₽/шт",
       min_price: 0,
       duration: "",
-      image: "https://images.unsplash.com/photo-1759722665935-0967b4e0da93?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-divan-uglovoy.svg",
       featured: 0,
       visible: 1
     },
@@ -286,7 +286,7 @@ module.exports = {
       unit: "₽/шт",
       min_price: 0,
       duration: "",
-      image: "https://images.unsplash.com/photo-1759722668385-90006d9c7aa7?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-divan-bolshoy.svg",
       featured: 0,
       visible: 1
     },
@@ -311,7 +311,7 @@ module.exports = {
       unit: "₽/шт",
       min_price: 0,
       duration: "",
-      image: "https://images.unsplash.com/photo-1759176170553-7c078c66c514?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-matras-2.svg",
       featured: 0,
       visible: 1
     },
@@ -336,7 +336,7 @@ module.exports = {
       unit: "₽/шт",
       min_price: 0,
       duration: "",
-      image: "https://images.unsplash.com/photo-1759176171441-7afca44a5558?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-matras-1.svg",
       featured: 0,
       visible: 1
     },
@@ -361,7 +361,7 @@ module.exports = {
       unit: "₽/шт",
       min_price: 0,
       duration: "",
-      image: "https://images.unsplash.com/photo-1759722667490-e5fd31b8dbd5?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-kreslo.svg",
       featured: 0,
       visible: 1
     },
@@ -386,7 +386,7 @@ module.exports = {
       unit: "₽/шт",
       min_price: 0,
       duration: "",
-      image: "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-stul.svg",
       featured: 0,
       visible: 1
     },
@@ -410,7 +410,7 @@ module.exports = {
       unit: "₽/м²",
       min_price: 0,
       duration: "",
-      image: "https://images.unsplash.com/photo-1758523670691-95212c899c1c?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-kovrolin.svg",
       featured: 0,
       visible: 1
     },
@@ -433,7 +433,7 @@ module.exports = {
       unit: "₽/окно",
       min_price: 0,
       duration: "",
-      image: "https://images.unsplash.com/photo-1758273238738-9410f7e9d53c?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-okna.svg",
       featured: 0,
       visible: 1
     },
@@ -456,7 +456,7 @@ module.exports = {
       unit: "₽/м²",
       min_price: 0,
       duration: "",
-      image: "https://images.unsplash.com/photo-1768471569643-717e823b5f9a?w=1600&h=1200&fit=crop&q=80&auto=format",
+      image: "/static/img/ba-ozonaciya.svg",
       featured: 0,
       visible: 1
     }

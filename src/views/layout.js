@@ -6,6 +6,7 @@ const { icon } = require('../icons');
 
 const NAV = [
   { href: '/uslugi', label: 'Услуги' },
+  { href: '/raboty', label: 'Наши работы' },
   { href: '/ceny', label: 'Цены' },
   { href: '/#process', label: 'Как работаем' },
   { href: '/#faq', label: 'Вопросы' },
@@ -116,6 +117,7 @@ function footer(ctx) {
       <div>
         <h3>Клиентам</h3>
         <ul>
+          <li><a href="/raboty">Наши работы</a></li>
           <li><a href="/ceny">Цены</a></li>
           <li><a href="/raschet">Расчёт стоимости</a></li>
           <li><a href="/#faq">Частые вопросы</a></li>

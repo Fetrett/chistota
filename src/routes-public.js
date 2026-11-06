@@ -37,6 +37,7 @@ const CACHE = { 'Cache-Control': 'public, max-age=0, must-revalidate', 'Netlify-
 function register(r) {
   r.get('/', (req, res) => res.html(views.home(context(req)), 200, CACHE));
   r.get('/uslugi', (req, res) => res.html(views.services(context(req)), 200, CACHE));
+  r.get('/raboty', (req, res) => res.html(views.works(context(req)), 200, CACHE));
   r.get('/uslugi/:slug', (req, res) => {
     const ctx = context(req);
     const s = ctx.services.find((x) => x.slug === req.params.slug);
@@ -77,7 +78,7 @@ function register(r) {
   });
   r.get('/sitemap.xml', (req, res) => {
     const base = siteUrl(req);
-    const pages = ['/', '/uslugi', '/ceny', '/raschet', '/kontakty', '/politika', ...Services.list({ visibleOnly: true }).map((s) => `/uslugi/${s.slug}`)];
+    const pages = ['/', '/uslugi', '/raboty', '/ceny', '/raschet', '/kontakty', '/politika', ...Services.list({ visibleOnly: true }).map((s) => `/uslugi/${s.slug}`)];
     res.send(200, `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `  <url><loc>${esc(base + p)}</loc></url>`).join('\n')}\n</urlset>\n`, 'application/xml; charset=utf-8', CACHE);
   });
 }

@@ -4,6 +4,7 @@ const { html, raw, rub, fmt, lines, paragraphs, telHref, tgBase } = require('../
 const { icon } = require('../icons');
 const Pricing = require('../../public/static/js/pricing');
 const { page, phoneText, socials, absUrl } = require('./layout');
+const WORKS = require('../works');
 
 // ---------- Мелкие компоненты ----------
 const priceFrom = (s) => html`от <span class="num">${fmt(s.price)}</span>`;
@@ -240,6 +241,16 @@ ${b.show_featured && ctx.services.length ? html`<section class="sec" id="service
   </div>
 </section>` : ''}
 
+${WORKS.length ? html`<section class="sec sec--alt" id="raboty" aria-labelledby="wrk-t">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div><span class="eyebrow">Наши работы</span><h2 class="h2" id="wrk-t">Фото до и после с наших объектов</h2><p class="lead">Настоящие фото, а не картинки из интернета: так выглядели квартиры клиентов до уборки и сразу после.</p></div>
+      <a class="link" href="/raboty">Все работы ${icon('arrow', { size: 16 })}</a>
+    </div>
+    <div class="works works--3" data-works>${WORKS.slice(0, 3).map((w) => workCard(w))}</div>
+  </div>
+</section>` : ''}
+
 ${(b.show_process && ctx.steps.length) || (b.show_advantages && ctx.advantages.length) ? html`<section class="sec dark" id="process" aria-labelledby="proc-t">
   <div class="wrap">
     <span class="eyebrow">Как это работает</span>
@@ -283,6 +294,36 @@ function areasBlock(ctx) {
     </div>
   </div>
 </section>`;
+}
+
+// ---------- Наши работы ----------
+function workCard(w, i = 0) {
+  return html`<figure class="work rv" data-group="${w.group}">
+  <a class="work__media" href="/static/img/${w.img}" data-lb="${w.title}" aria-label="Открыть фото: ${w.title}">
+    ${img('/static/img/' + w.img, 'До и после: ' + w.title, { w: 1200, h: 900 })}
+    <span class="work__zoom" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></span>
+  </a>
+  <figcaption class="work__cap"><span class="work__tag">${w.group}</span><span class="work__t">${w.title}</span></figcaption>
+</figure>`;
+}
+
+function works(ctx) {
+  const groups = [...new Set(WORKS.map((w) => w.group))];
+  const body = html`
+<header class="phead"><div class="wrap">
+  ${crumbs([['/', 'Главная'], [null, 'Наши работы']])}
+  <h1 class="display">Наши работы</h1>
+  <p class="lead">Настоящие фото с наших объектов в ${ctx.cityIn}: слева — как было, справа — как стало. Нажмите на фото, чтобы рассмотреть его целиком.</p>
+</div></header>
+<section class="sec" aria-label="Фото до и после"><div class="wrap">
+  ${groups.length > 1 ? html`<div class="wfilter" role="group" aria-label="Показать работы">
+    <button type="button" class="wfilter__b" aria-pressed="true" data-wf="">Все <span>${WORKS.length}</span></button>
+    ${groups.map((g) => html`<button type="button" class="wfilter__b" aria-pressed="false" data-wf="${g}">${g} <span>${WORKS.filter((w) => w.group === g).length}</span></button>`)}
+  </div>` : ''}
+  <div class="works" data-works>${WORKS.map((w) => workCard(w))}</div>
+</div></section>
+${finalCta(ctx)}`;
+  return page(ctx, { title: 'Наши работы — фото до и после', description: `Фото уборки до и после: кухни, ванные, окна, химчистка мебели. ${ctx.company.name}, ${ctx.city}.`, canonical: '/raboty' }, body);
 }
 
 // ---------- Услуги ----------
@@ -468,4 +509,4 @@ function notFound(ctx) {
   return page(ctx, { title: 'Страница не найдена', noindex: true }, body);
 }
 
-module.exports = { home, services, service, prices, calcPage, contacts, thanks, privacy, notFound, absUrl };
+module.exports = { home, works, services, service, prices, calcPage, contacts, thanks, privacy, notFound, absUrl };

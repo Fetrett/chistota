@@ -322,6 +322,82 @@
   }
   document.addEventListener('DOMContentLoaded', initBeforeAfter);
 
+  // ---------- «Наши работы»: фильтр и просмотр на весь экран ----------
+  function initWorks() {
+    var links = $$('a[data-lb]'); if (!links.length) return;
+    var grid = $('[data-works]');
+    $$('[data-wf]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var g = b.getAttribute('data-wf');
+        $$('[data-wf]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+        $$('.work', grid).forEach(function (w) { w.hidden = !!g && w.getAttribute('data-group') !== g; });
+      });
+    });
+    var svg = function (d) { return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; };
+    var mk = function (tag, cls, h) { var e = document.createElement(tag); e.className = cls; if (h) e.innerHTML = h; return e; };
+    var lb = mk('div', 'lb'); lb.hidden = true; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-modal', 'true'); lb.setAttribute('aria-label', 'Фото до и после');
+    var top = mk('div', 'lb__top'); var count = mk('span', 'lb__count');
+    var close = mk('button', 'lb__btn lb__x', svg('M6 6l12 12M18 6L6 18')); close.type = 'button'; close.setAttribute('aria-label', 'Закрыть');
+    top.appendChild(count); top.appendChild(close);
+    var stage = mk('div', 'lb__stage'); var im = mk('img', 'lb__img'); im.alt = '';
+    var prev = mk('button', 'lb__btn lb__prev', svg('M15 18l-6-6 6-6')); prev.type = 'button'; prev.setAttribute('aria-label', 'Предыдущее фото');
+    var next = mk('button', 'lb__btn lb__next', svg('M9 18l6-6-6-6')); next.type = 'button'; next.setAttribute('aria-label', 'Следующее фото');
+    stage.appendChild(im); stage.appendChild(prev); stage.appendChild(next);
+    var cap = mk('div', 'lb__cap'); cap.setAttribute('aria-live', 'polite');
+    lb.appendChild(top); lb.appendChild(stage); lb.appendChild(cap); document.body.appendChild(lb);
+    var list = [], i = 0, opener = null;
+    var visible = function () { return links.filter(function (a) { var w = a.closest('.work'); return !w || (!w.hidden && w.offsetParent !== null); }); };
+    function show(n, anim) {
+      i = (n + list.length) % list.length; var a = list[i];
+      var w = a.closest('.work'); var tag = w ? w.getAttribute('data-group') : '';
+      var put = function () {
+        im.src = a.getAttribute('href'); im.alt = 'До и после: ' + a.getAttribute('data-lb');
+        cap.innerHTML = ''; if (tag) cap.appendChild(mk('small', '')).textContent = tag;
+        cap.appendChild(document.createTextNode(a.getAttribute('data-lb')));
+        count.textContent = (i + 1) + ' / ' + list.length;
+        im.classList.remove('is-swap');
+      };
+      var many = list.length > 1; prev.hidden = next.hidden = !many;
+      if (anim && !reduce) { im.classList.add('is-swap'); setTimeout(put, 160); } else put();
+      var pre = list[(i + 1) % list.length]; if (pre) (new Image()).src = pre.getAttribute('href');
+    }
+    function open(a) {
+      list = visible(); if (list.indexOf(a) < 0) list = [a];
+      opener = a; lb.hidden = false; document.documentElement.classList.add('lb-lock');
+      show(list.indexOf(a), false);
+      requestAnimationFrame(function () { lb.classList.add('is-open'); close.focus(); });
+    }
+    function shut() {
+      lb.classList.remove('is-open'); document.documentElement.classList.remove('lb-lock');
+      setTimeout(function () { lb.hidden = true; im.removeAttribute('src'); }, reduce ? 0 : 250);
+      if (opener) opener.focus({ preventScroll: true });
+    }
+    links.forEach(function (a) { a.addEventListener('click', function (e) { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); open(a); }); });
+    close.addEventListener('click', shut);
+    prev.addEventListener('click', function () { show(i - 1, true); });
+    next.addEventListener('click', function () { show(i + 1, true); });
+    stage.addEventListener('click', function (e) { if (e.target === stage) shut(); });
+    document.addEventListener('keydown', function (e) {
+      if (lb.hidden) return;
+      if (e.key === 'Escape') shut();
+      else if (e.key === 'ArrowLeft') show(i - 1, true);
+      else if (e.key === 'ArrowRight') show(i + 1, true);
+      else if (e.key === 'Tab') { // фокус не уходит из окна
+        var f = [close, prev, next].filter(function (x) { return !x.hidden; });
+        var k = f.indexOf(document.activeElement);
+        e.preventDefault(); f[(k + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+      }
+    });
+    var sx = null, sy = 0;
+    stage.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+    stage.addEventListener('touchend', function (e) {
+      if (sx === null) return; var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) show(i + (dx < 0 ? 1 : -1), true);
+      else if (dy > 90 && Math.abs(dy) > Math.abs(dx)) shut();
+    });
+  }
+  document.addEventListener('DOMContentLoaded', initWorks);
+
   // ---------- Мягкое форматирование телефона ----------
   function initPhone(input) {
     input.addEventListener('blur', function () {

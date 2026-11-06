@@ -81,6 +81,16 @@ function register(r) {
     res.html(views.dashboard(vctx(req, res), { counts: Leads.counts(), recent: Leads.recent(6), checks }));
   });
 
+  // ---------- Резервная копия: весь контент сайта + загруженные фото одним JSON ----------
+  // Нужна для переезда на другой аккаунт Netlify: файл кладётся в корень проекта как content-snapshot.json.
+  r.get('/admin/backup', requireAuth, async (req, res) => {
+    const content = store.state.content;
+    const keys = [...new Set((JSON.stringify(content).match(/\/media\/[\w.-]+/g) || []).map((m) => m.slice(7)))];
+    const files = {};
+    for (const k of keys) { const m = await store.backend.getMedia(k); if (m) files[k] = { type: m.type, b64: m.data.toString('base64') }; }
+    res.json({ exported_at: new Date().toISOString(), content, media: files });
+  });
+
   // ---------- Заявки ----------
   r.get('/admin/leads', requireAuth, (req, res) => {
     const q = V.str(req.query.q, 80); const status = STATUSES[req.query.status] ? req.query.status : '';

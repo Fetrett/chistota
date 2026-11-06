@@ -82,8 +82,13 @@ function sqlNow() { return new Date().toISOString().slice(0, 19).replace('T', ' 
 // На Netlify одна копия функции обрабатывает один запрос за раз, поэтому состояние модуля безопасно.
 const state = { content: null, leads: null, dirtyContent: false, dirtyLeads: false };
 
+// Снимок, сохранённый через /admin/backup, — стартовые данные при переезде на новый аккаунт Netlify.
+// Пустой файл ({}) — значит снимка нет и берётся content.js.
+const snapshot = require('../content-snapshot.json').content || null;
+function initialContent() { return snapshot ? JSON.parse(JSON.stringify(snapshot)) : seed(); }
+
 async function loadContent() {
-  state.content = (await backend.getJSON('content')) || seed();
+  state.content = (await backend.getJSON('content')) || initialContent();
   state.dirtyContent = false;
   return state.content;
 }

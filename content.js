@@ -106,7 +106,7 @@ module.exports = {
       unit: "₽/м²",
       min_price: 0,
       duration: "около 6 часов",
-      image: "/static/img/ba-generalnaya.svg",
+      image: "/static/img/foto-generalnaya.jpg",
       featured: 1,
       visible: 1
     },
@@ -132,7 +132,7 @@ module.exports = {
       unit: "₽/м²",
       min_price: 0,
       duration: "около 4 часов",
-      image: "/static/img/ba-podderzhka.svg",
+      image: "/static/img/foto-podderzhka.jpg",
       featured: 1,
       visible: 1
     },
@@ -185,7 +185,7 @@ module.exports = {
       unit: "₽",
       min_price: 0,
       duration: "около 4 часов",
-      image: "/static/img/ba-kuhnya.svg",
+      image: "/static/img/foto-kuhnya.jpg",
       featured: 0,
       visible: 1
     },
@@ -211,7 +211,7 @@ module.exports = {
       unit: "₽",
       min_price: 0,
       duration: "",
-      image: "/static/img/ba-vannaya.svg",
+      image: "/static/img/foto-vannaya.jpg",
       featured: 0,
       visible: 1
     },
@@ -386,7 +386,7 @@ module.exports = {
       unit: "₽/шт",
       min_price: 0,
       duration: "",
-      image: "/static/img/ba-stul.svg",
+      image: "/static/img/foto-stul.jpg",
       featured: 0,
       visible: 1
     },
@@ -433,7 +433,7 @@ module.exports = {
       unit: "₽/окно",
       min_price: 0,
       duration: "",
-      image: "/static/img/ba-okna.svg",
+      image: "/static/img/foto-okna.jpg",
       featured: 0,
       visible: 1
     },
